@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -67,6 +68,9 @@ private const val DefaultSelectedTabIndex = 0
 fun HomeScreen(
     viewModel: HomeViewModel = koinViewModel(),
 ) {
+    var hasInitTabFocus by rememberSaveable {
+        mutableStateOf(false)
+    }
     val tabFocusRequester = remember {
         FocusRequester()
     }
@@ -127,6 +131,13 @@ fun HomeScreen(
 
     }
 
+    LaunchedEffect(Unit) {
+        if (!hasInitTabFocus) {
+            hasInitTabFocus = true
+            tabFocusRequester.requestFocus()
+        }
+    }
+
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class, ExperimentalTvFoundationApi::class)
@@ -152,7 +163,7 @@ fun HomeTopNav(
                     tabItems.forEachIndexed { tabIndex, tab ->
                         Tab(
                             selected = selectedTabIndex == tabIndex,
-                            modifier = if (tabIndex == DefaultSelectedTabIndex) Modifier.initiallyFocused() else Modifier.restorableFocus(),
+                            modifier = Modifier.restorableFocus(),
                             onFocus = { selectedTabIndex = tabIndex }) {
                             Text(
                                 text = context.getString(tab.tabName),

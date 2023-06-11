@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">555电影</string>
+    <string name="activity_detail">视频详情</string>
+    <string name="home_nav_recommend">推荐</string>
+    <string name="home_nav_netflix">Netflix</string>
+    <string name="home_nav_movie">电影</string>
+    <string name="home_nav_serial_drama">电视剧</string>
+    <string name="home_nav_anime">动漫</string>
+    <string name="button_retry">重试</string>
+    <string name="home_nav_variety_show">综艺</string>
+</resources>

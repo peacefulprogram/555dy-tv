@@ -8,15 +8,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -43,9 +39,6 @@ fun VideoCard(
     var focused by rememberSaveable {
         mutableStateOf(false)
     }
-    val focusRequester = remember {
-        FocusRequester()
-    }
     CompactCard(
         modifier = Modifier
             .size(width = width, height = height)
@@ -54,8 +47,7 @@ fun VideoCard(
             }
             .onFocusChanged {
                 focused = it.isFocused || it.hasFocus
-            }
-            .focusRequester(focusRequester),
+            },
         onClick = { onVideoClick(video) },
         image = {
             AsyncImage(
@@ -98,9 +90,4 @@ fun VideoCard(
         },
         scale = CardDefaults.scale(focusedScale = focusedScale)
     )
-    LaunchedEffect(focused) {
-        if (focused) {
-            focusRequester.requestFocus()
-        }
-    }
 }

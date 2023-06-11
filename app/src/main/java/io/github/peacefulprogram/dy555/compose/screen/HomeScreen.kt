@@ -17,7 +17,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -33,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.tv.foundation.ExperimentalTvFoundationApi
 import androidx.tv.foundation.lazy.grid.TvGridCells
 import androidx.tv.foundation.lazy.grid.TvLazyVerticalGrid
 import androidx.tv.foundation.lazy.grid.rememberTvLazyGridState
@@ -50,6 +50,7 @@ import io.github.peacefulprogram.dy555.activity.DetailActivity
 import io.github.peacefulprogram.dy555.compose.common.ErrorTip
 import io.github.peacefulprogram.dy555.compose.common.Loading
 import io.github.peacefulprogram.dy555.compose.common.VideoCard
+import io.github.peacefulprogram.dy555.compose.util.FocusGroup
 import io.github.peacefulprogram.dy555.http.MediaCardData
 import io.github.peacefulprogram.dy555.http.Resource
 import io.github.peacefulprogram.dy555.viewmodel.HomeViewModel
@@ -59,14 +60,13 @@ import org.koin.androidx.compose.koinViewModel
 
 private val VideoCardWidth = 157.dp
 private val VideoCardHeight = 220.dp
+private val TabItems = HomeNavTabItem.values()
+private const val DefaultSelectedTabIndex = 0
 
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = koinViewModel(),
 ) {
-    var hasInitFocus by rememberSaveable {
-        mutableStateOf(false)
-    }
     val tabFocusRequester = remember {
         FocusRequester()
     }
@@ -127,50 +127,44 @@ fun HomeScreen(
 
     }
 
-    if (!hasInitFocus) {
-        hasInitFocus = true
-        LaunchedEffect(Unit) {
-            tabFocusRequester.requestFocus()
-        }
-
-    }
 }
 
-@OptIn(ExperimentalTvMaterial3Api::class)
+@OptIn(ExperimentalTvMaterial3Api::class, ExperimentalTvFoundationApi::class)
 @Composable
 fun HomeTopNav(
     modifier: Modifier = Modifier,
     tabContent: @Composable (HomeNavTabItem) -> Unit
 ) {
     val context = LocalContext.current
-    val tabItems = remember {
-        HomeNavTabItem.values()
-    }
+    val tabItems = TabItems
     var selectedTabIndex by rememberSaveable {
-        mutableIntStateOf(0)
+        mutableIntStateOf(DefaultSelectedTabIndex)
     }
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth()) {
-            TabRow(
-                selectedTabIndex = selectedTabIndex,
-                indicator = {
-                    TabRowDefaults.PillIndicator(currentTabPosition = it[selectedTabIndex])
-                },
-                modifier = modifier
-            ) {
-                tabItems.forEachIndexed { tabIndex, tab ->
-                    Tab(
-                        selected = selectedTabIndex == tabIndex,
-                        onFocus = { selectedTabIndex = tabIndex }) {
-                        Text(
-                            text = context.getString(tab.tabName),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                        )
+        FocusGroup(modifier = modifier) {
+            Row(Modifier.fillMaxWidth()) {
+                TabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    indicator = {
+                        TabRowDefaults.PillIndicator(currentTabPosition = it[selectedTabIndex])
+                    }
+                ) {
+                    tabItems.forEachIndexed { tabIndex, tab ->
+                        Tab(
+                            selected = selectedTabIndex == tabIndex,
+                            modifier = if (tabIndex == DefaultSelectedTabIndex) Modifier.initiallyFocused() else Modifier.restorableFocus(),
+                            onFocus = { selectedTabIndex = tabIndex }) {
+                            Text(
+                                text = context.getString(tab.tabName),
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
                     }
                 }
+                Spacer(modifier = Modifier.weight(1f))
+                Text(text = context.getString(R.string.app_name))
             }
-            Spacer(modifier = Modifier.weight(1f))
-            Text(text = context.getString(R.string.app_name))
+
         }
         tabContent(tabItems[selectedTabIndex])
     }

@@ -8,8 +8,10 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import io.github.peacefulprogram.dy555.http.HttpDataRepository
 import io.github.peacefulprogram.dy555.viewmodel.HomeViewModel
+import io.github.peacefulprogram.dy555.viewmodel.VideoDetailViewModel
 import okhttp3.Cookie
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -118,6 +120,13 @@ class Dy555Application : Application(), ImageLoaderFactory {
                     }
 
                 }
+                .apply {
+                    if (BuildConfig.DEBUG) {
+                        addNetworkInterceptor(HttpLoggingInterceptor().apply {
+                            level = HttpLoggingInterceptor.Level.HEADERS
+                        })
+                    }
+                }
                 .build()
         }
         single { HttpDataRepository(get()) }
@@ -125,6 +134,7 @@ class Dy555Application : Application(), ImageLoaderFactory {
 
     private fun viewModelModule() = module {
         viewModel { HomeViewModel(get()) }
+        viewModel { parameters -> VideoDetailViewModel(videoId = parameters.get(), get()) }
     }
 
 }

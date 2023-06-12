@@ -84,11 +84,48 @@ class HttpDataRepository(private val okHttpClient: OkHttpClient) {
 
 
     fun getDetailPage(videoId: String): VideoDetailData {
-        val document = getDocument("$${Constants.BASE_URL}/voddetail/$videoId.html")
+        val document = getDocument("${Constants.BASE_URL}/voddetail/$videoId.html")
         val infoContainer = document.selectFirst(".main .module-main")!!
         val cover = infoContainer.selectFirst("img")!!.dataset()["original"]!!
         val title = infoContainer.selectFirst(".module-info-heading h1")!!.text().trim()
+        val tags = infoContainer.select(".module-info-tag-link a").map { link ->
+            VideoTag(
+                name = link.text().trim(),
+                url = link.attr("href")
+            )
+        }
         val desc = infoContainer.selectFirst(".module-info-introduction-content")!!.text()
+        val infoLines = infoContainer.select(".module-info-item").asSequence()
+            .filter { !it.hasClass("module-info-introduction") }
+            .map { div ->
+                val lineName = div.child(0).text().trim()
+                if (lineName.contains("豆瓣") || lineName.contains("编剧")) {
+                    return@map VideoInfoLine.PlainTextInfo(
+                        name = lineName,
+                        value = div.child(1).text().trim().trim('/').replace("/", " / ")
+                    )
+                }
+                val links = div.child(1).select("a")
+                if (links.isEmpty()) {
+                    VideoInfoLine.PlainTextInfo(
+                        name = lineName,
+                        div.child(1).text().trim().trim('/').replace("/", " / ")
+                    )
+                } else {
+                    VideoInfoLine.TagInfo(
+                        name = lineName,
+                        tags = links
+                            .map { l ->
+                                VideoTag(
+                                    name = l.text().trim(),
+                                    url = l.attr("href")
+                                )
+                            }
+                            .filter { it.name.isNotEmpty() }
+                    )
+                }
+            }
+            .toList()
         val tabItems = document.select("#y-playList .tab-item")
         val playListEls = document.select(".module-play-list-content")
         val playLists = mutableListOf<Pair<String, List<Episode>>>()
@@ -112,7 +149,9 @@ class HttpDataRepository(private val okHttpClient: OkHttpClient) {
             desc = desc,
             pic = if (cover.startsWith("http")) cover else "${Constants.BASE_URL}$cover",
             playLists = playLists,
-            relatedVideos = relatedVideos
+            relatedVideos = relatedVideos,
+            tags = tags,
+            infoLines = infoLines
         )
     }
 

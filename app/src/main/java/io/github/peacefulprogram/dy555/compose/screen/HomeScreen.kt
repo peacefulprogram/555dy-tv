@@ -46,6 +46,8 @@ import androidx.tv.material3.Tab
 import androidx.tv.material3.TabRow
 import androidx.tv.material3.TabRowDefaults
 import androidx.tv.material3.Text
+import io.github.peacefulprogram.dy555.Constants.VideoCardHeight
+import io.github.peacefulprogram.dy555.Constants.VideoCardWidth
 import io.github.peacefulprogram.dy555.R
 import io.github.peacefulprogram.dy555.activity.DetailActivity
 import io.github.peacefulprogram.dy555.compose.common.ErrorTip
@@ -59,8 +61,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
-private val VideoCardWidth = 157.dp
-private val VideoCardHeight = 220.dp
 private val TabItems = HomeNavTabItem.values()
 private const val DefaultSelectedTabIndex = 0
 

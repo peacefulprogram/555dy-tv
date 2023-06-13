@@ -30,6 +30,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -146,7 +147,6 @@ fun HomeTopNav(
     modifier: Modifier = Modifier,
     tabContent: @Composable (HomeNavTabItem) -> Unit
 ) {
-    val context = LocalContext.current
     val tabItems = TabItems
     var selectedTabIndex by rememberSaveable {
         mutableIntStateOf(DefaultSelectedTabIndex)
@@ -166,14 +166,14 @@ fun HomeTopNav(
                             modifier = Modifier.restorableFocus(),
                             onFocus = { selectedTabIndex = tabIndex }) {
                             Text(
-                                text = context.getString(tab.tabName),
+                                text = stringResource(tab.tabName),
                                 modifier = Modifier.padding(10.dp)
                             )
                         }
                     }
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                Text(text = context.getString(R.string.app_name))
+                Text(text = stringResource(R.string.app_name))
             }
 
         }

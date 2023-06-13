@@ -12,7 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.tv.material3.Button
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Text
@@ -37,7 +37,6 @@ fun ErrorTip(message: String, retry: () -> Unit = { }) {
     val focusRequester = remember {
         FocusRequester()
     }
-    val context = LocalContext.current
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -49,7 +48,7 @@ fun ErrorTip(message: String, retry: () -> Unit = { }) {
                 .focusRequester(focusRequester)
                 .focusable()
         ) {
-            Text(text = context.getString(R.string.button_retry))
+            Text(text = stringResource(R.string.button_retry))
         }
     }
     LaunchedEffect(Unit) {

@@ -1,5 +1,7 @@
 package io.github.peacefulprogram.dy555.http
 
+import java.io.Serializable
+
 data class VideoDetailData(
     val id: String,
     val title: String,
@@ -14,7 +16,7 @@ data class VideoDetailData(
 data class Episode(
     val id: String,
     val name: String
-)
+) : Serializable
 
 data class VideoTag(
     val name: String,

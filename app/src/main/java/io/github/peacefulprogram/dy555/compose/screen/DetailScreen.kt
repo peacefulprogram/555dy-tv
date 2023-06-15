@@ -61,6 +61,7 @@ import coil.compose.AsyncImage
 import io.github.peacefulprogram.dy555.Constants
 import io.github.peacefulprogram.dy555.R
 import io.github.peacefulprogram.dy555.activity.DetailActivity
+import io.github.peacefulprogram.dy555.activity.PlaybackActivity
 import io.github.peacefulprogram.dy555.compose.common.ErrorTip
 import io.github.peacefulprogram.dy555.compose.common.Loading
 import io.github.peacefulprogram.dy555.compose.common.VideoCard
@@ -88,13 +89,21 @@ fun DetailScreen(viewModel: VideoDetailViewModel) {
         return
     }
     val videoDetail = (videoDetailResource as Resource.Success<VideoDetailData>).data
+    val context = LocalContext.current
     TvLazyColumn(
         modifier = Modifier.fillMaxSize(), content = {
             item {
                 VideoInfoRow(videoDetail = videoDetail)
             }
             items(items = videoDetail.playLists, key = { it.first }) { playlist ->
-                PlayListRow(playlist)
+                PlayListRow(playlist) {
+                    PlaybackActivity.startActivity(
+                        episode = it,
+                        videoName = videoDetail.title,
+                        context = context,
+                        playlist = playlist.second
+                    )
+                }
             }
             item {
                 RelativeVideoRow(videoDetail.relatedVideos)
@@ -132,7 +141,7 @@ fun RelativeVideoRow(videos: List<MediaCardData>) {
 }
 
 @Composable
-fun PlayListRow(playlist: Pair<String, List<Episode>>) {
+fun PlayListRow(playlist: Pair<String, List<Episode>>, onEpisodeClick: (Episode) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(text = playlist.first, style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(5.dp))
@@ -140,7 +149,7 @@ fun PlayListRow(playlist: Pair<String, List<Episode>>) {
             content = {
                 items(items = playlist.second, key = { it.id }) { ep ->
                     VideoTag(tagName = ep.name) {
-                        TODO("跳转到播放页")
+                        onEpisodeClick(ep)
                     }
                 }
             },

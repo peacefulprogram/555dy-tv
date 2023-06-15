@@ -8,6 +8,7 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import io.github.peacefulprogram.dy555.http.HttpDataRepository
 import io.github.peacefulprogram.dy555.viewmodel.HomeViewModel
+import io.github.peacefulprogram.dy555.viewmodel.PlaybackViewModel
 import io.github.peacefulprogram.dy555.viewmodel.VideoDetailViewModel
 import okhttp3.Cookie
 import okhttp3.OkHttpClient
@@ -135,6 +136,7 @@ class Dy555Application : Application(), ImageLoaderFactory {
     private fun viewModelModule() = module {
         viewModel { HomeViewModel(get()) }
         viewModel { parameters -> VideoDetailViewModel(videoId = parameters.get(), get()) }
+        viewModel { PlaybackViewModel(get()) }
     }
 
 }

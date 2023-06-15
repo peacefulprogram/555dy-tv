@@ -1,11 +1,20 @@
 package io.github.peacefulprogram.dy555.http
 
+import cn.hutool.crypto.digest.HMac
+import cn.hutool.crypto.digest.HmacAlgorithm
+import cn.hutool.crypto.digest.MD5
+import com.google.gson.Gson
 import io.github.peacefulprogram.dy555.Constants
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.internal.and
+import okhttp3.internal.toHexString
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
 import kotlin.math.min
 
 class HttpDataRepository(private val okHttpClient: OkHttpClient) {
@@ -199,5 +208,74 @@ class HttpDataRepository(private val okHttpClient: OkHttpClient) {
         val lastPageHref =
             pageContainer.child(pageContainer.childrenSize() - 1).attr("href") ?: return false
         return !lastPageHref.endsWith("/$currentPage.html")
+    }
+
+    fun queryVideoUrl(episodeId: String): String? {
+        val url = episodeId.split("-").run {
+            "${Constants.BASE_URL}/voddisp/id/${get(0)}/sid/${get(1)}/nid/${get(2)}.html"
+        }
+        val encryptUrl = Request.Builder().url(url).get().build()
+            .run { okHttpClient.newCall(this).execute() }.body?.string()
+            ?.let { Gson().fromJson(it, Map::class.java)["url"] as String? }
+            ?: throw RuntimeException("加密url为空")
+
+        val serverUrl = "https://player2.lscsfw.com:6723/api"
+        val timestamp = System.currentTimeMillis() / 0x3e8
+        val iv = "d11324dcscfe16c0".toByteArray(Charsets.UTF_8)
+        val key = "55cc5c42a943afdc".toByteArray(Charsets.UTF_8)
+        val keySpec = SecretKeySpec(key, "AES")
+        val packString = Cipher.getInstance("AES/CBC/PKCS5Padding").run {
+            init(Cipher.ENCRYPT_MODE, keySpec, IvParameterSpec(iv))
+            doFinal(encryptUrl.toByteArray())
+        }.joinToString(separator = "", transform = ::byteToHexString).uppercase()
+        val urlMd5 = MD5.create()
+            .digestHex(serverUrl + "GET" + timestamp + "55ca5c4d11424dcecfe16c08a943afdc")
+        val signature = HMac(HmacAlgorithm.HmacSHA256, urlMd5.toByteArray()).digestHex(packString)
+        return Request.Builder()
+            .url("$apiUrl?app_key=$appKey&client_key=$clientKey&request_token=$requestToken&access_token=$accessToken")
+            .header("X-PLAYER-TIMESTAMP", timestamp.toString())
+            .header("X-PLAYER-SIGNATURE", signature).header("X-PLAYER-METHOD", "GET")
+            .header("X-PLAYER-PACK", packString).build().let {
+                okHttpClient.newCall(it).execute()
+            }.body?.string()?.let {
+                // aes解密
+                val json = Cipher.getInstance("AES/CBC/PKCS5Padding").run {
+                    init(Cipher.DECRYPT_MODE, keySpec, IvParameterSpec(iv))
+                    doFinal(it.chunked(2).map { it.toInt(0x10).toByte() }.toByteArray())
+                }.toString(Charsets.UTF_8)
+                Gson().fromJson<Map<String, Map<String, String>>>(
+                    json, Map::class.java
+                )["data"]?.get("url")
+            }
+    }
+
+    private fun byteToHexString(byte: Byte): String {
+        val result = (byte and 0xff).toHexString()
+        if (result.length == 1) {
+            return "0$result"
+        }
+        return result
+    }
+
+    companion object {
+
+        val apiUrl = "https://player2.lscsfw.com:6723/api/get_play_url"
+
+        val appKey by lazy {
+            MD5.create().digestHex("www.555dy.com")
+        }
+
+        val clientKey by lazy {
+            MD5.create().digestHex(Constants.USER_AGENT)
+        }
+
+        val requestToken by lazy {
+            MD5.create().digestHex("https://zyz.sdljwomen.com")
+        }
+
+        val accessToken by lazy {
+            MD5.create().digestHex(apiUrl.replace(Regex("^https?:"), ""))
+        }
+
     }
 }

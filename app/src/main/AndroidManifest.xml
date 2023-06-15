@@ -34,6 +34,10 @@
             android:name=".activity.DetailActivity"
             android:exported="false"
             android:label="@string/activity_detail" />
+        <activity
+            android:name=".activity.PlaybackActivity"
+            android:exported="false"
+            android:label="@string/activity_playback" />
     </application>
 
 </manifest>

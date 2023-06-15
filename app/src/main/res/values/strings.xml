@@ -10,4 +10,5 @@
     <string name="home_nav_variety_show">综艺</string>
     <string name="video_description">简介</string>
     <string name="related_videos">相关视频</string>
+    <string name="activity_playback">播放页</string>
 </resources>

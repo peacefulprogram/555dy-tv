@@ -64,8 +64,7 @@ dependencies {
     val roomVersion = "2.5.0"
     val coilVersion = "2.4.0"
     val composeTvVersion = "1.0.0-alpha07"
-    val exoplayerVersion = "2.18.7"
-    val navigationVersion = "2.6.0"
+    val media3Version = "1.0.2"
     implementation("androidx.core:core-ktx:1.10.1")
     implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.0"))
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
@@ -85,6 +84,7 @@ dependencies {
     implementation("androidx.tv:tv-foundation:$composeTvVersion")
     implementation("androidx.tv:tv-material:$composeTvVersion")
 
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     // room
     implementation("androidx.room:room-runtime:$roomVersion")
     annotationProcessor("androidx.room:room-compiler:$roomVersion")
@@ -104,12 +104,10 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 
-    // exoplayer
-    implementation("com.google.android.exoplayer:exoplayer-core:$exoplayerVersion")
-    implementation("com.google.android.exoplayer:exoplayer-hls:$exoplayerVersion")
-    implementation("com.google.android.exoplayer:exoplayer-common:$exoplayerVersion")
-    implementation("com.google.android.exoplayer:extension-okhttp:$exoplayerVersion")
-    implementation("com.google.android.exoplayer:extension-leanback:$exoplayerVersion")
+    implementation("androidx.media3:media3-exoplayer:$media3Version")
+    implementation("androidx.media3:media3-ui:$media3Version")
+    implementation("androidx.media3:media3-exoplayer-hls:$media3Version")
+    implementation("androidx.media3:media3-ui-leanback:$media3Version")
 
     implementation("org.jsoup:jsoup:1.16.1")
 
@@ -123,5 +121,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     implementation("cn.hutool:hutool-crypto:5.8.18")
+
+    implementation("com.google.code.gson:gson:2.10.1")
 
 }

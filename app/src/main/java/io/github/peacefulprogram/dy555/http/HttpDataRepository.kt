@@ -12,6 +12,7 @@ import okhttp3.internal.toHexString
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import java.util.regex.Pattern
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -219,7 +220,7 @@ class HttpDataRepository(private val okHttpClient: OkHttpClient) {
             ?.let { Gson().fromJson(it, Map::class.java)["url"] as String? }
             ?: throw RuntimeException("加密url为空")
 
-        val serverUrl = "https://player2.lscsfw.com:6723/api"
+        val serverUrl = Constants.PLAY_URL_SERVER
         val timestamp = System.currentTimeMillis() / 0x3e8
         val iv = "d11324dcscfe16c0".toByteArray(Charsets.UTF_8)
         val key = "55cc5c42a943afdc".toByteArray(Charsets.UTF_8)
@@ -231,10 +232,14 @@ class HttpDataRepository(private val okHttpClient: OkHttpClient) {
         val urlMd5 = MD5.create()
             .digestHex(serverUrl + "GET" + timestamp + "55ca5c4d11424dcecfe16c08a943afdc")
         val signature = HMac(HmacAlgorithm.HmacSHA256, urlMd5.toByteArray()).digestHex(packString)
+        val requestUrl = "${Constants.PLAY_URL_SERVER}/get_play_url"
+        val accessToken =
+            MD5.create().digestHex(requestUrl.substring(requestUrl.indexOf("://") + 3))
         return Request.Builder()
-            .url("$apiUrl?app_key=$appKey&client_key=$clientKey&request_token=$requestToken&access_token=$accessToken")
+            .url("$requestUrl?app_key=$appKey&client_key=$clientKey&request_token=$requestToken&access_token=$accessToken")
             .header("X-PLAYER-TIMESTAMP", timestamp.toString())
-            .header("X-PLAYER-SIGNATURE", signature).header("X-PLAYER-METHOD", "GET")
+            .header("X-PLAYER-SIGNATURE", signature)
+            .header("X-PLAYER-METHOD", "GET")
             .header("X-PLAYER-PACK", packString).build().let {
                 okHttpClient.newCall(it).execute()
             }.body?.string()?.let {
@@ -309,12 +314,30 @@ class HttpDataRepository(private val okHttpClient: OkHttpClient) {
 
     }
 
+    fun loadVideoServerUrl(): String {
+        val doc = getDocument("${Constants.BASE_URL}/player.html?v=1")
+        val scripts = doc.select("script")
+        var result: String? = null
+        val pattern = Pattern.compile("server_url\\s*=\\s*['\"]([\\w:/.]+)['\"]")
+        for (script in scripts) {
+            val html = script.html()
+            if (html.isEmpty()) {
+                continue
+            }
+            val matcher = pattern.matcher(html)
+            if (matcher.find()) {
+                result = matcher.group(1)
+                break
+            }
+        }
+        return result ?: ""
+    }
+
     companion object {
 
-        val apiUrl = "https://player2.lscsfw.com:6723/api/get_play_url"
-
         val appKey by lazy {
-            MD5.create().digestHex("www.555dy.com")
+            MD5.create()
+                .digestHex("www.555dy.com")
         }
 
         val clientKey by lazy {
@@ -323,10 +346,6 @@ class HttpDataRepository(private val okHttpClient: OkHttpClient) {
 
         val requestToken by lazy {
             MD5.create().digestHex("https://zyz.sdljwomen.com")
-        }
-
-        val accessToken by lazy {
-            MD5.create().digestHex(apiUrl.replace(Regex("^https?:"), ""))
         }
 
     }

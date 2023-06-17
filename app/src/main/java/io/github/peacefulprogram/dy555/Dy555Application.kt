@@ -11,9 +11,13 @@ import io.github.peacefulprogram.dy555.viewmodel.CategoriesViewModel
 import io.github.peacefulprogram.dy555.viewmodel.HomeViewModel
 import io.github.peacefulprogram.dy555.viewmodel.PlaybackViewModel
 import io.github.peacefulprogram.dy555.viewmodel.VideoDetailViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import okhttp3.Cookie
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -37,6 +41,7 @@ class Dy555Application : Application(), ImageLoaderFactory {
             androidLogger()
             modules(httpModule(), viewModelModule())
         }
+        reloadVideoServer()
         super.onCreate()
     }
 
@@ -141,4 +146,16 @@ class Dy555Application : Application(), ImageLoaderFactory {
         viewModel { parameters -> CategoriesViewModel(get(), parameters.get()) }
     }
 
+    fun reloadVideoServer() {
+        val repository = get<HttpDataRepository>()
+        GlobalScope.launch(Dispatchers.IO) {
+            val url = repository.loadVideoServerUrl()
+            Constants.PLAY_URL_SERVER = if (url.isEmpty()) {
+                "https://player.dwz0.cc:3653/api"
+            } else {
+                url
+            }
+
+        }
+    }
 }

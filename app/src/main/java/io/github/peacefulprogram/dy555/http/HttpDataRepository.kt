@@ -201,7 +201,7 @@ class HttpDataRepository(private val okHttpClient: OkHttpClient) {
     }
 
     private fun hasNextPage(document: Document): Boolean {
-        val pageContainer = document.getElementById("page")!!
+        val pageContainer = document.getElementById("page") ?: return false
         val currentPage =
             pageContainer.getElementsByClass("page-current").firstOrNull()?.text()?.trim()
                 ?: return false
@@ -255,6 +255,58 @@ class HttpDataRepository(private val okHttpClient: OkHttpClient) {
             return "0$result"
         }
         return result
+    }
+
+    fun queryCategory(param: List<String>, page: Int): PageResult<MediaCardData> {
+        val paramStr = param.toMutableList().run {
+            this[8] = page.toString() // 第9个参数是页码
+            this.joinToString(separator = "-")
+        }
+        val doc = getDocument("${Constants.BASE_URL}/vodshow/$paramStr.html")
+        val videos =
+            doc.getElementsByClass("module-items")[0].children().map(this::parseVideoLinkElement)
+        return PageResult(videos, page, hasNextPage(doc))
+    }
+
+    fun queryCategoryFilter(param: List<String>): List<Triple<Int, String, List<Pair<String, String>>>> {
+        val pathParam = param.joinToString(separator = "-")
+        val doc = getDocument("${Constants.BASE_URL}/vodshow/$pathParam.html")
+        val groups = doc.selectFirst(".module-main.module-class")!!.select(".module-class-item")
+        val result = ArrayList<Triple<Int, String, List<Pair<String, String>>>>(groups.size)
+        val getLastPathSegment = { url: String ->
+            url.substring(url.lastIndexOf('/') + 1, url.lastIndexOf('.'))
+        }
+        groups.forEach { group ->
+            val groupName = group.selectFirst(".module-item-title")!!.text().trim()
+            val allConditions = group.select(".module-item-box a")
+            if (allConditions.isEmpty()) {
+                return@forEach
+            }
+            val firstCond = getLastPathSegment(allConditions[0].attr("href")).split('-')
+            val another =
+                if (allConditions.size > 1) getLastPathSegment(allConditions[1].attr("href")).split(
+                    '-'
+                ) else param
+            // 比较第一个和第二个不同的部分 确定当前分类的参数位置
+            var paramIndex = -1
+            for (i in firstCond.indices) {
+                if (firstCond[i] != another[i]) {
+                    paramIndex = i
+                    break
+                }
+            }
+            if (paramIndex == -1) {
+                return@forEach
+            }
+            val filters = allConditions.map { link ->
+                Pair(
+                    link.text().trim(), getLastPathSegment(link.attr("href")).split('-')[paramIndex]
+                )
+            }
+            result.add(Triple(paramIndex, groupName, filters))
+        }
+        return result
+
     }
 
     companion object {

@@ -2,9 +2,11 @@ package io.github.peacefulprogram.dy555.compose.screen
 
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement.spacedBy
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,15 +37,17 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.tv.foundation.PivotOffsets
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.TvLazyRow
@@ -60,6 +65,7 @@ import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import io.github.peacefulprogram.dy555.Constants
 import io.github.peacefulprogram.dy555.R
+import io.github.peacefulprogram.dy555.activity.CategoriesActivity
 import io.github.peacefulprogram.dy555.activity.DetailActivity
 import io.github.peacefulprogram.dy555.activity.PlaybackActivity
 import io.github.peacefulprogram.dy555.compose.common.ErrorTip
@@ -161,7 +167,13 @@ fun PlayListRow(playlist: Pair<String, List<Episode>>, onEpisodeClick: (Episode)
 private fun jumpToByTag(url: String, context: Context) {
 
     if (url.startsWith("/vodshow")) {
-        TODO("类型索引页")
+        CategoriesActivity.startActivity(
+            url.substring(
+                url.lastIndexOf('/') + 1,
+                url.lastIndexOf('.')
+            ),
+            context
+        )
     } else if (url.startsWith("/vodsearch")) {
         TODO("搜索页")
     } else {
@@ -274,7 +286,7 @@ fun VideoInfoRow(videoDetail: VideoDetailData) {
                                     focusedBorder = Border(
                                         BorderStroke(
                                             2.dp,
-                                            MaterialTheme.colorScheme.inverseSurface
+                                            MaterialTheme.colorScheme.border
                                         )
                                     )
                                 ),
@@ -301,69 +313,69 @@ fun VideoInfoRow(videoDetail: VideoDetailData) {
     }
 
     // 在Dialog中显示视频简介
-    if (showDescDialog) {
+    AnimatedVisibility(visible = showDescDialog) {
         val scrollState = rememberScrollState()
         val coroutineScope = rememberCoroutineScope()
-        Dialog(
-            onDismissRequest = { showDescDialog = false }
-        ) {
-            Surface(
-                onClick = {},
-                border = ClickableSurfaceDefaults.border(
-                    border = Border(
-                        BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.inverseSurface
-                        )
-                    )
-                ),
-                scale = ClickableSurfaceScale.None,
-                colors = ClickableSurfaceDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.85f)
-                    .onPreviewKeyEvent {
-                        val step = 70f
-                        when (it.key) {
-                            Key.DirectionUp -> {
-                                coroutineScope.launch {
-                                    scrollState.animateScrollBy(-step)
-                                }
-                                true
-                            }
-
-                            Key.DirectionDown -> {
-                                coroutineScope.launch {
-                                    scrollState.animateScrollBy(step)
-                                }
-                                true
-                            }
-
-                            else -> false
-                        }
-
-                    }
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(15.dp)
-                        .fillMaxSize()
-                        .verticalScroll(scrollState)
-                ) {
-                    Text(
-                        text = stringResource(R.string.video_description),
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.padding(bottom = 10.dp)
-                    )
-                    Text(
-                        text = videoDetail.desc,
-                    )
-                }
-
-            }
+        val longDescFocusRequester = remember {
+            FocusRequester()
         }
+        AlertDialog(
+            onDismissRequest = { showDescDialog = false },
+            confirmButton = {},
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier.fillMaxWidth(0.6f),
+            title = {
+                Text(
+                    text = stringResource(R.string.video_description),
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(bottom = 10.dp)
+                )
+            },
+            text = {
+                Text(
+                    text = videoDetail.desc,
+                    modifier = Modifier
+                        .verticalScroll(scrollState)
+                        .focusRequester(longDescFocusRequester)
+                        .focusable()
+                        .onPreviewKeyEvent {
+                            val step = 70f
+                            when (it.key) {
+                                Key.DirectionUp -> {
+                                    if (it.type == KeyEventType.KeyDown) {
+                                        coroutineScope.launch {
+                                            scrollState.animateScrollBy(-step)
+                                        }
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                }
+
+                                Key.DirectionDown -> {
+                                    if (it.type == KeyEventType.KeyDown) {
+                                        coroutineScope.launch {
+                                            scrollState.animateScrollBy(step)
+                                        }
+                                        true
+                                    } else {
+                                        false
+                                    }
+
+                                }
+
+                                else -> false
+                            }
+
+                        }
+                )
+                LaunchedEffect(Unit) {
+                    longDescFocusRequester.requestFocus()
+                }
+            }
+
+        )
+
     }
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -386,7 +398,7 @@ fun VideoTag(tagName: String, onClick: () -> Unit = {}) {
             focusedBorder = Border(
                 border = BorderStroke(
                     width = 2.dp,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.border
                 ),
                 shape = MaterialTheme.shapes.small
             )

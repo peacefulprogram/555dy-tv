@@ -7,6 +7,7 @@ import cn.hutool.crypto.digest.MD5
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import io.github.peacefulprogram.dy555.http.HttpDataRepository
+import io.github.peacefulprogram.dy555.viewmodel.CategoriesViewModel
 import io.github.peacefulprogram.dy555.viewmodel.HomeViewModel
 import io.github.peacefulprogram.dy555.viewmodel.PlaybackViewModel
 import io.github.peacefulprogram.dy555.viewmodel.VideoDetailViewModel
@@ -137,6 +138,7 @@ class Dy555Application : Application(), ImageLoaderFactory {
         viewModel { HomeViewModel(get()) }
         viewModel { parameters -> VideoDetailViewModel(videoId = parameters.get(), get()) }
         viewModel { PlaybackViewModel(get()) }
+        viewModel { parameters -> CategoriesViewModel(get(), parameters.get()) }
     }
 
 }

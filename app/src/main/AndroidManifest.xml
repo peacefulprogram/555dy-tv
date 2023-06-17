@@ -38,6 +38,10 @@
             android:name=".activity.PlaybackActivity"
             android:exported="false"
             android:label="@string/activity_playback" />
+        <activity
+            android:name=".activity.CategoriesActivity"
+            android:exported="false"
+            android:label="@string/activity_categories" />
     </application>
 
 </manifest>

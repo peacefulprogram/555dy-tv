@@ -2,6 +2,7 @@ package io.github.peacefulprogram.dy555.compose.screen
 
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,6 +32,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
@@ -42,14 +45,21 @@ import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.TvLazyRow
 import androidx.tv.foundation.lazy.list.items
 import androidx.tv.foundation.lazy.list.rememberTvLazyListState
+import androidx.tv.material3.Border
+import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.ClickableSurfaceScale
 import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Surface
 import androidx.tv.material3.Tab
+import androidx.tv.material3.TabDefaults
 import androidx.tv.material3.TabRow
 import androidx.tv.material3.TabRowDefaults
 import androidx.tv.material3.Text
 import io.github.peacefulprogram.dy555.Constants.VideoCardHeight
 import io.github.peacefulprogram.dy555.Constants.VideoCardWidth
 import io.github.peacefulprogram.dy555.R
+import io.github.peacefulprogram.dy555.activity.CategoriesActivity
 import io.github.peacefulprogram.dy555.activity.DetailActivity
 import io.github.peacefulprogram.dy555.compose.common.ErrorTip
 import io.github.peacefulprogram.dy555.compose.common.Loading
@@ -58,12 +68,13 @@ import io.github.peacefulprogram.dy555.compose.util.FocusGroup
 import io.github.peacefulprogram.dy555.http.MediaCardData
 import io.github.peacefulprogram.dy555.http.Resource
 import io.github.peacefulprogram.dy555.viewmodel.HomeViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 private val TabItems = HomeNavTabItem.values()
-private const val DefaultSelectedTabIndex = 0
 
 @Composable
 fun HomeScreen(
@@ -79,7 +90,32 @@ fun HomeScreen(
     val navigateToDetail = { video: MediaCardData ->
         DetailActivity.startActivity(video.id, context)
     }
-    HomeTopNav(modifier = Modifier.focusRequester(tabFocusRequester)) { tab ->
+    var selectedTabIndex by remember {
+        mutableIntStateOf(0)
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(selectedTabIndex) {
+        val tab = TabItems[selectedTabIndex]
+        coroutineScope.launch(Dispatchers.Default) {
+            delay(200L)
+            when (tab) {
+                HomeNavTabItem.RECOMMEND -> viewModel.refreshRecommend(true)
+                HomeNavTabItem.NETFLIX -> {}
+                HomeNavTabItem.MOVIE -> viewModel.refreshMovies(true)
+                HomeNavTabItem.ANIME -> viewModel.refreshAnime(true)
+                HomeNavTabItem.SERIAL_DRAMA -> viewModel.refreshSerialDrama(true)
+                HomeNavTabItem.VARIETY_SHOW -> viewModel.refreshVarietyShow(true)
+            }
+        }
+    }
+    HomeTopNav(
+        selectedTabIndex = selectedTabIndex,
+        onTabFocus = { selectedTabIndex = it },
+        tabItems = TabItems,
+        modifier = Modifier.focusRequester(tabFocusRequester)
+    ) { tab ->
         AnimatedContent(
             targetState = tab,
         ) { curTab ->
@@ -99,13 +135,15 @@ fun HomeScreen(
                     )
 
                     HomeNavTabItem.ANIME -> VideoCategories(
+                        videoTypeId = "4",
                         dataProvider = viewModel::anime,
                         onRequestRefresh = viewModel::refreshAnime,
                         onRequestTabFocus = tabFocusRequester::requestFocus,
-                        onVideoClick = navigateToDetail
+                        onVideoClick = navigateToDetail,
                     )
 
                     HomeNavTabItem.SERIAL_DRAMA -> VideoCategories(
+                        videoTypeId = "2",
                         dataProvider = viewModel::serialDrama,
                         onRequestRefresh = viewModel::refreshSerialDrama,
                         onRequestTabFocus = tabFocusRequester::requestFocus,
@@ -113,6 +151,7 @@ fun HomeScreen(
                     )
 
                     HomeNavTabItem.VARIETY_SHOW -> VideoCategories(
+                        videoTypeId = "3",
                         dataProvider = viewModel::varietyShow,
                         onRequestRefresh = viewModel::refreshVarietyShow,
                         onRequestTabFocus = tabFocusRequester::requestFocus,
@@ -120,6 +159,7 @@ fun HomeScreen(
                     )
 
                     HomeNavTabItem.MOVIE -> VideoCategories(
+                        videoTypeId = "1",
                         dataProvider = viewModel::movies,
                         onRequestRefresh = viewModel::refreshMovies,
                         onRequestTabFocus = tabFocusRequester::requestFocus,
@@ -144,30 +184,37 @@ fun HomeScreen(
 @OptIn(ExperimentalTvMaterial3Api::class, ExperimentalTvFoundationApi::class)
 @Composable
 fun HomeTopNav(
+    selectedTabIndex: Int,
+    onTabFocus: (Int) -> Unit,
+    tabItems: Array<HomeNavTabItem>,
     modifier: Modifier = Modifier,
     tabContent: @Composable (HomeNavTabItem) -> Unit
 ) {
-    val tabItems = TabItems
-    var selectedTabIndex by rememberSaveable {
-        mutableIntStateOf(DefaultSelectedTabIndex)
-    }
     Column(Modifier.fillMaxSize()) {
         FocusGroup(modifier = modifier) {
             Row(Modifier.fillMaxWidth()) {
                 TabRow(
                     selectedTabIndex = selectedTabIndex,
                     indicator = {
-                        TabRowDefaults.PillIndicator(currentTabPosition = it[selectedTabIndex])
+                        TabRowDefaults.UnderlinedIndicator(
+                            currentTabPosition = it[selectedTabIndex],
+                            activeColor = MaterialTheme.colorScheme.border
+                        )
                     }
                 ) {
                     tabItems.forEachIndexed { tabIndex, tab ->
                         Tab(
                             selected = selectedTabIndex == tabIndex,
                             modifier = Modifier.restorableFocus(),
-                            onFocus = { selectedTabIndex = tabIndex }) {
+                            onFocus = { onTabFocus(tabIndex) },
+                            colors = TabDefaults.underlinedIndicatorTabColors(
+                                selectedContentColor = colorResource(id = R.color.rose200),
+                                focusedSelectedContentColor = colorResource(id = R.color.rose400)
+                            )
+                        ) {
                             Text(
                                 text = stringResource(tab.tabName),
-                                modifier = Modifier.padding(10.dp)
+                                modifier = Modifier.padding(8.dp, 4.dp),
                             )
                         }
                     }
@@ -196,14 +243,12 @@ enum class HomeNavTabItem(@StringRes val tabName: Int) {
 
 @Composable
 fun VideoCategories(
+    videoTypeId: String? = null,
     dataProvider: () -> StateFlow<Resource<List<Pair<String, List<MediaCardData>>>>>,
     onRequestRefresh: (autoRefresh: Boolean) -> Unit,
     onRequestTabFocus: () -> Unit,
     onVideoClick: (MediaCardData) -> Unit
 ) {
-    LaunchedEffect(Unit) {
-        onRequestRefresh(true)
-    }
     val recommend by dataProvider().collectAsState()
     if (recommend == Resource.Loading) {
         Loading()
@@ -218,16 +263,29 @@ fun VideoCategories(
     val videoGroups = (recommend as Resource.Success).data
     val state = rememberTvLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
     TvLazyColumn(
         content = {
             item { Spacer(modifier = Modifier.height(20.dp)) }
-            items(
-                items = videoGroups,
-                key = { it.first }
-            ) {
+            items(count = videoGroups.size, key = { videoGroups[it].first }) { groupIndex ->
+                val typeId = if (groupIndex == 0) {
+                    videoTypeId
+                } else {
+                    null
+                }
+                val onVideoTypeClick = {
+                    if (videoTypeId != null) {
+                        CategoriesActivity.startActivity(
+                            "$videoTypeId-----------", context = context
+                        )
+                    }
+                }
+                val group = videoGroups[groupIndex]
                 VideoRow(
-                    title = it.first,
-                    videos = it.second,
+                    videoTypeId = typeId,
+                    onVideoTypeClick = onVideoTypeClick,
+                    title = group.first,
+                    videos = group.second,
                     onVideoClick = onVideoClick
                 ) { _, keyEvent ->
                     when (keyEvent.key) {
@@ -257,10 +315,13 @@ fun VideoCategories(
     )
 }
 
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun VideoRow(
     title: String,
     videos: List<MediaCardData>,
+    videoTypeId: String? = null,
+    onVideoTypeClick: (() -> Unit)? = null,
     onVideoClick: (MediaCardData) -> Unit = {},
     onVideoKeyEvent: ((MediaCardData, KeyEvent) -> Boolean)? = null
 ) {
@@ -268,31 +329,48 @@ fun VideoRow(
     val scaleWidth = VideoCardWidth * (focusedScale - 1f) / 2 + 5.dp
     val scaleHeight = VideoCardHeight * (focusedScale - 1f) / 2 + 5.dp
     Column(Modifier.fillMaxWidth()) {
-        Text(text = title)
-        Spacer(modifier = Modifier.height(scaleHeight))
-        TvLazyRow(
-            content = {
-                item {
-                    Spacer(modifier = Modifier.width(scaleWidth))
-                }
-                items(
-                    items = videos,
-                    key = { it.id }
-                ) { video ->
-                    VideoCard(
-                        width = VideoCardWidth,
-                        height = VideoCardHeight,
-                        video = video,
-                        focusedScale = focusedScale,
-                        onVideoClick = onVideoClick,
-                        onVideoKeyEvent = onVideoKeyEvent
+        if (videoTypeId == null) {
+            Text(text = title)
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = title)
+                Text(text = " | ")
+                Surface(
+                    onClick = { onVideoTypeClick?.invoke() },
+                    scale = ClickableSurfaceScale.None,
+                    colors = ClickableSurfaceDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = ClickableSurfaceDefaults.border(
+                        focusedBorder = Border(BorderStroke(2.dp, MaterialTheme.colorScheme.border))
+                    )
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.video_more),
+                        modifier = Modifier.padding(8.dp, 4.dp)
                     )
                 }
-                item {
-                    Spacer(modifier = Modifier.width(scaleWidth))
-                }
             }
-        )
+        }
+        Spacer(modifier = Modifier.height(scaleHeight))
+        TvLazyRow(content = {
+            item {
+                Spacer(modifier = Modifier.width(scaleWidth))
+            }
+            items(items = videos, key = { it.id }) { video ->
+                VideoCard(
+                    width = VideoCardWidth,
+                    height = VideoCardHeight,
+                    video = video,
+                    focusedScale = focusedScale,
+                    onVideoClick = onVideoClick,
+                    onVideoKeyEvent = onVideoKeyEvent
+                )
+            }
+            item {
+                Spacer(modifier = Modifier.width(scaleWidth))
+            }
+        })
         Spacer(modifier = Modifier.height(scaleHeight))
     }
 }
@@ -315,42 +393,48 @@ fun NetflixVideos(
         }
         return
     }
+    val videoCardContainerWidth = VideoCardWidth * 1.1f
+    val videoCardContainerHeight = VideoCardHeight * 1.1f
+
     val gridState = rememberTvLazyGridState()
     val coroutineScope = rememberCoroutineScope()
     TvLazyVerticalGrid(
-        columns = TvGridCells.Adaptive(VideoCardWidth),
+        columns = TvGridCells.Adaptive(videoCardContainerWidth),
         state = gridState,
         contentPadding = PaddingValues(20.dp),
         content = {
             items(count = pagingItems.itemCount) {
-                VideoCard(
-                    width = VideoCardWidth,
-                    height = VideoCardHeight,
-                    video = pagingItems[it]!!,
-                    onVideoClick = onVideoClick,
-                    onVideoKeyEvent = { _, event ->
-                        when (event.key) {
-                            Key.Back -> {
-                                coroutineScope.launch {
-                                    gridState.animateScrollToItem(0)
+                Box(
+                    modifier = Modifier.size(videoCardContainerWidth, videoCardContainerHeight),
+                    contentAlignment = Alignment.Center
+                ) {
+                    VideoCard(width = VideoCardWidth,
+                        height = VideoCardHeight,
+                        video = pagingItems[it]!!,
+                        onVideoClick = onVideoClick,
+                        onVideoKeyEvent = { _, event ->
+                            when (event.key) {
+                                Key.Back -> {
+                                    coroutineScope.launch {
+                                        gridState.animateScrollToItem(0)
+                                    }
+                                    onRequestTabFocus()
+                                    true
                                 }
-                                onRequestTabFocus()
-                                true
+
+                                Key.Menu -> {
+                                    pagingItems.refresh()
+                                    onRequestTabFocus()
+                                    true
+                                }
+
+                                else -> {
+                                    false
+                                }
                             }
 
-                            Key.Menu -> {
-                                pagingItems.refresh()
-                                onRequestTabFocus()
-                                true
-                            }
-
-                            else -> {
-                                false
-                            }
-                        }
-
-                    }
-                )
+                        })
+                }
             }
         })
 

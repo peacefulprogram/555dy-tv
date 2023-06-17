@@ -33,22 +33,27 @@ import io.github.peacefulprogram.dy555.http.MediaCardData
 fun VideoCard(
     width: Dp, height: Dp, video: MediaCardData,
     focusedScale: Float = 1.1f,
+    onVideoLongClick: (MediaCardData) -> Unit = {},
     onVideoClick: (MediaCardData) -> Unit = {},
     onVideoKeyEvent: ((MediaCardData, KeyEvent) -> Boolean)? = null
 ) {
     var focused by rememberSaveable {
         mutableStateOf(false)
     }
+    var modifier = Modifier
+        .size(width = width, height = height)
+        .onFocusChanged {
+            focused = it.isFocused || it.hasFocus
+        }
+    if (onVideoKeyEvent != null) {
+        modifier = modifier.onPreviewKeyEvent {
+            onVideoKeyEvent(video, it)
+        }
+    }
     CompactCard(
-        modifier = Modifier
-            .size(width = width, height = height)
-            .onPreviewKeyEvent {
-                onVideoKeyEvent?.invoke(video, it) ?: false
-            }
-            .onFocusChanged {
-                focused = it.isFocused || it.hasFocus
-            },
+        modifier = modifier,
         onClick = { onVideoClick(video) },
+        onLongClick = { onVideoLongClick(video) },
         image = {
             AsyncImage(
                 model = video.pic,

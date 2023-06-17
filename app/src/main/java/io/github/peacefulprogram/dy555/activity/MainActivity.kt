@@ -6,11 +6,10 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ExperimentalTvMaterial3Api
-import androidx.tv.material3.NonInteractiveSurfaceDefaults
-import androidx.tv.material3.Surface
 import io.github.peacefulprogram.dy555.compose.screen.HomeScreen
 import io.github.peacefulprogram.dy555.compose.theme.Dy555Theme
 
@@ -24,13 +23,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             Dy555Theme {
-                Surface(shape = NonInteractiveSurfaceDefaults.shape) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(20.dp)
-                    ) {
-                        HomeScreen()
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    androidx.tv.material3.Surface(modifier = Modifier.fillMaxSize()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(20.dp)
+                        ) {
+                            HomeScreen()
+                        }
                     }
                 }
             }

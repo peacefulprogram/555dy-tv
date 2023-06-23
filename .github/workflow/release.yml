@@ -1,0 +1,26 @@
+name: pre-release
+on:
+  push:
+    tags:
+      - *
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.5.2
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.4
+        with:
+          java-version: 17
+      - name: Build
+        run: |
+          chmod a+x ./gradlew
+          ./gradlew :app:assemble
+          mv app/build/outputs/apk/release/app-release-unsigned.apk 555dy-${{ github.ref_name }}.apk
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          prerelease: true
+          files: 555dy-${{ github.ref_name }}.apk

@@ -398,7 +398,7 @@ fun VideoRow(
                     ),
                     modifier = Modifier.onPreviewKeyEvent {
                         if (it.key == Key.DirectionUp) {
-                            if (it.type == KeyEventType.KeyUp) {
+                            if (it.type == KeyEventType.KeyDown) {
                                 onRequestTabFocus()
                             }
                             true

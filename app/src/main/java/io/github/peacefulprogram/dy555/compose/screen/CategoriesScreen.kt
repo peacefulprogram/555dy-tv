@@ -200,6 +200,10 @@ fun CategoriesScreen(
         VideoFilterDialog(filters = filters, currentFilter = viewModel.paramArray, onApply = {
             viewModel.applyNewFilter(it)
             pagingItems.refresh()
+            coroutineScope.launch {
+                state.scrollToItem(0)
+                titleFocusRequester.requestFocus()
+            }
             showFilterDialog = false
         }) {
             showFilterDialog = false

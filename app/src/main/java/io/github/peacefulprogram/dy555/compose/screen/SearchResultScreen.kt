@@ -1,15 +1,16 @@
 package io.github.peacefulprogram.dy555.compose.screen
 
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -18,6 +19,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.tv.foundation.lazy.grid.TvGridCells
+import androidx.tv.foundation.lazy.grid.TvGridItemSpan
+import androidx.tv.foundation.lazy.grid.TvLazyVerticalGrid
 import androidx.tv.foundation.lazy.grid.rememberTvLazyGridState
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -48,15 +52,22 @@ fun SearchResultScreen(viewModel: SearchResultViewModel) {
     val context = LocalContext.current
     val gridState = rememberTvLazyGridState()
     val coroutineScope = rememberCoroutineScope()
+    val titleFocusRequester = remember {
+        FocusRequester()
+    }
     Box(modifier = Modifier.fillMaxSize()) {
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(containerWidth),
+        TvLazyVerticalGrid(
+            columns = TvGridCells.Adaptive(containerWidth),
             modifier = Modifier.fillMaxSize(),
+            state = gridState,
             content = {
-                item(span = { GridItemSpan(maxLineSpan) }) {
+                item(span = { TvGridItemSpan(maxLineSpan) }) {
                     Text(
                         text = stringResource(R.string.title_search_result),
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier
+                            .focusRequester(titleFocusRequester)
+                            .focusable()
                     )
                 }
                 items(count = pagingItems.itemCount) { videoIndex ->
@@ -77,6 +88,15 @@ fun SearchResultScreen(viewModel: SearchResultViewModel) {
                                     pagingItems.refresh()
                                     coroutineScope.launch {
                                         gridState.scrollToItem(0)
+                                        titleFocusRequester.requestFocus()
+                                    }
+                                    true
+                                } else if (keyEvent.key == Key.Back) {
+                                    if (keyEvent.type == KeyEventType.KeyUp) {
+                                        coroutineScope.launch {
+                                            gridState.scrollToItem(0)
+                                            titleFocusRequester.requestFocus()
+                                        }
                                     }
                                     true
                                 } else {

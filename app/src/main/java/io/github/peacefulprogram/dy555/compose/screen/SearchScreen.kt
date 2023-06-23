@@ -5,7 +5,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement.spacedBy
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Stop
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -47,8 +45,6 @@ import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.items
 import androidx.tv.foundation.lazy.list.rememberTvLazyListState
 import androidx.tv.material3.Border
-import androidx.tv.material3.Button
-import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.ButtonScale
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.ClickableSurfaceScale
@@ -62,6 +58,7 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import io.github.peacefulprogram.dy555.R
 import io.github.peacefulprogram.dy555.activity.SearchResultActivity
+import io.github.peacefulprogram.dy555.compose.common.ConfirmDeleteDialog
 import io.github.peacefulprogram.dy555.compose.common.SpeechToTextParser
 import io.github.peacefulprogram.dy555.compose.util.FocusGroup
 import io.github.peacefulprogram.dy555.http.Resource
@@ -173,7 +170,7 @@ fun InputKeywordRow(onSearch: (String) -> Unit) {
             modifier = Modifier.weight(1f),
             placeholder = {
                 if (sttState.isSpeaking) {
-                    Text(text = stringResource(R.string.speak_search_keyworld))
+                    Text(text = stringResource(R.string.speak_search_keyword))
                 } else {
                     Text(text = stringResource(R.string.input_search_keyword))
                 }
@@ -289,70 +286,32 @@ fun SearchHistory(viewModel: SearchViewModel, onKeywordClick: (String) -> Unit) 
         )
     }
 
-    if (confirmDeleteHistory != null) {
-        val confirmText = String.format(
-            stringResource(
-                id = R.string.confirm_delete_template
-            ), confirmDeleteHistory?.keyword
-        )
-        AlertDialog(onDismissRequest = { confirmDeleteHistory = null }, confirmButton = {
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        viewModel.deleteAllHistory()
-                        confirmDeleteHistory = null
-                        pagingItems.refresh()
-                    }
-                },
-                colors = ButtonDefaults.colors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-                    contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-                    focusedContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                ),
-                border = ButtonDefaults.border(
-                    focusedBorder = Border(
-                        BorderStroke(
-                            2.dp, MaterialTheme.colorScheme.border
-                        )
-                    )
-                ),
-                shape = ButtonDefaults.shape(shape = androidx.compose.material3.MaterialTheme.shapes.medium)
-            ) {
-                Text(text = stringResource(R.string.button_delete_all))
+    val history = confirmDeleteHistory ?: return
+
+    val confirmText = String.format(
+        stringResource(
+            id = R.string.confirm_delete_template
+        ), confirmDeleteHistory?.keyword
+    )
+    ConfirmDeleteDialog(
+        text = confirmText,
+        onDeleteClick = {
+            confirmDeleteHistory = null
+            coroutineScope.launch {
+                viewModel.deleteSearchHistory(history)
+                pagingItems.refresh()
             }
-        }, dismissButton = {
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        confirmDeleteHistory?.let {
-                            viewModel.deleteSearchHistory(it)
-                        }
-                        pagingItems.refresh()
-                    }
-                },
-                colors = ButtonDefaults.colors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-                    contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-                    focusedContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                ),
-                border = ButtonDefaults.border(
-                    focusedBorder = Border(
-                        BorderStroke(
-                            2.dp, MaterialTheme.colorScheme.border
-                        )
-                    )
-                ),
-                shape = ButtonDefaults.shape(shape = androidx.compose.material3.MaterialTheme.shapes.medium),
-            ) {
-                Text(text = stringResource(R.string.button_delete))
+        },
+        onDeleteAllClick = {
+            confirmDeleteHistory = null
+            coroutineScope.launch {
+                viewModel.deleteAllHistory()
+                pagingItems.refresh()
             }
-        }, text = {
-            Text(
-                text = confirmText, modifier = Modifier.focusable()
-            )
-        })
-    }
+        },
+        onCancel = {
+            confirmDeleteHistory = null
+        }
+    )
 
 }

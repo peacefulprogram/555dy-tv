@@ -14,7 +14,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class VideoDetailViewModel(
@@ -41,16 +40,13 @@ class VideoDetailViewModel(
 
     init {
         reloadVideoDetail()
-        watchHistory()
     }
 
-    private fun watchHistory() {
+    fun fetchHistory() {
         viewModelScope.launch(Dispatchers.Default) {
-            episodeHistoryDao.queryLatestProgress(videoId).collectLatest {
-                    if (it != null) {
-                        _latestProgress.emit(Resource.Success(it))
-                    }
-                }
+            episodeHistoryDao.queryLatestProgress(videoId)?.let {
+                _latestProgress.emit(Resource.Success(it))
+            }
         }
     }
 

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -35,7 +36,10 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
@@ -105,9 +109,9 @@ fun HomeScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(selectedTabIndex) {
+    DisposableEffect(selectedTabIndex) {
         val tab = TabItems[selectedTabIndex]
-        coroutineScope.launch(Dispatchers.Default) {
+        val job = coroutineScope.launch(Dispatchers.Default) {
             delay(200L)
             when (tab) {
                 HomeNavTabItem.RECOMMEND -> viewModel.refreshRecommend(true)
@@ -117,6 +121,10 @@ fun HomeScreen(
                 HomeNavTabItem.SERIAL_DRAMA -> viewModel.refreshSerialDrama(true)
                 HomeNavTabItem.VARIETY_SHOW -> viewModel.refreshVarietyShow(true)
             }
+        }
+
+        onDispose {
+            job.cancel()
         }
     }
     HomeTopNav(
@@ -298,7 +306,7 @@ fun VideoCategories(
     }
     if (recommend is Resource.Error) {
         ErrorTip(message = (recommend as Resource.Error<List<Pair<String, List<MediaCardData>>>>).message) {
-            println("重试重试")
+            onRequestRefresh(false)
         }
         return
     }
@@ -328,6 +336,7 @@ fun VideoCategories(
                     onVideoTypeClick = onVideoTypeClick,
                     title = group.first,
                     videos = group.second,
+                    onRequestTabFocus = onRequestTabFocus,
                     onVideoClick = onVideoClick
                 ) { _, keyEvent ->
                     when (keyEvent.key) {
@@ -363,6 +372,7 @@ fun VideoRow(
     title: String,
     videos: List<MediaCardData>,
     videoTypeId: String? = null,
+    onRequestTabFocus: () -> Unit,
     onVideoTypeClick: (() -> Unit)? = null,
     onVideoClick: (MediaCardData) -> Unit = {},
     onVideoKeyEvent: ((MediaCardData, KeyEvent) -> Boolean)? = null
@@ -385,7 +395,17 @@ fun VideoRow(
                     ),
                     border = ClickableSurfaceDefaults.border(
                         focusedBorder = Border(BorderStroke(2.dp, MaterialTheme.colorScheme.border))
-                    )
+                    ),
+                    modifier = Modifier.onPreviewKeyEvent {
+                        if (it.key == Key.DirectionUp) {
+                            if (it.type == KeyEventType.KeyUp) {
+                                onRequestTabFocus()
+                            }
+                            true
+                        } else {
+                            false
+                        }
+                    }
                 ) {
                     Text(
                         text = stringResource(id = R.string.video_more),

@@ -19,9 +19,7 @@ jobs:
           ./gradlew :app:assemble
           mv app/build/outputs/apk/release/app-release-unsigned.apk 555dy-${{ github.ref_name }}.apk
       - name: Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: 555dy-${{ github.ref_name }}.apk
+        run: |
+          gh release create ${{ github.ref_name }} 555dy-${{ github.ref_name }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

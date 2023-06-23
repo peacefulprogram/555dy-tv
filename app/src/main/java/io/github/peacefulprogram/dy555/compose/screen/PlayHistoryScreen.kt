@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -90,6 +91,9 @@ fun PlayHistoryScreen(viewModel: PlayHistoryViewModel) {
                             text = stringResource(R.string.click_ok_del_tip),
                             style = MaterialTheme.typography.bodySmall
                         )
+                    }
+                    LaunchedEffect(Unit) {
+                        titleFocusRequester.requestFocus()
                     }
                 }
                 items(count = pagingItems.itemCount) { videoIndex ->

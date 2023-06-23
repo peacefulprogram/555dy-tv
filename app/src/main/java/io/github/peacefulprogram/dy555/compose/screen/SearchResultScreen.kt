@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -69,6 +70,9 @@ fun SearchResultScreen(viewModel: SearchResultViewModel) {
                             .focusRequester(titleFocusRequester)
                             .focusable()
                     )
+                    LaunchedEffect(Unit) {
+                        titleFocusRequester.requestFocus()
+                    }
                 }
                 items(count = pagingItems.itemCount) { videoIndex ->
                     val video = pagingItems[videoIndex]!!

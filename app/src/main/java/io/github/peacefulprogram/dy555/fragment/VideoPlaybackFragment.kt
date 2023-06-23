@@ -215,7 +215,9 @@ class VideoPlaybackFragment(
         }
 
         if (keyEvent.keyCode == KeyEvent.KEYCODE_MENU) {
-            openPlayListDialogAndChoose()
+            if (keyEvent.action == KeyEvent.ACTION_UP) {
+                openPlayListDialogAndChoose()
+            }
             return true
         }
         return false

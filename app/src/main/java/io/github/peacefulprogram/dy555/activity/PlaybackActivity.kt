@@ -18,9 +18,11 @@ class PlaybackActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_playback)
+        val videoId = intent.getStringExtra("vid")!!
         val episodeId = intent.getStringExtra("id")!!
         val episodeName = intent.getStringExtra("name")!!
         val playlist = intent.getSerializableExtra("playlist") as Array<Episode>
+        viewModel.videoId = videoId
         viewModel.videoTitle = intent.getStringExtra("title")!!
         viewModel.changeEpisode(Episode(id = episodeId, name = episodeName))
         viewModel.playlist = playlist.toList()
@@ -31,12 +33,14 @@ class PlaybackActivity : FragmentActivity() {
 
     companion object {
         fun startActivity(
+            videoId: String,
             episode: Episode,
             playlist: List<Episode>,
             videoName: String,
             context: Context
         ) {
             Intent(context, PlaybackActivity::class.java).apply {
+                putExtra("vid", videoId)
                 putExtra("id", episode.id)
                 putExtra("name", episode.name)
                 putExtra("playlist", playlist.toTypedArray())

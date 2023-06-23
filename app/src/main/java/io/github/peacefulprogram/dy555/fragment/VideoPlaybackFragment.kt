@@ -14,14 +14,17 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.leanback.LeanbackPlayerAdapter
 import com.jing.ddys.ext.showLongToast
+import com.jing.ddys.ext.showShortToast
 import io.github.peacefulprogram.dy555.Constants
 import io.github.peacefulprogram.dy555.ext.dpToPx
+import io.github.peacefulprogram.dy555.ext.secondsToDuration
 import io.github.peacefulprogram.dy555.fragment.playback.ChooseEpisodeDialog
 import io.github.peacefulprogram.dy555.fragment.playback.GlueActionCallback
 import io.github.peacefulprogram.dy555.fragment.playback.PlayListAction
@@ -61,6 +64,15 @@ class VideoPlaybackFragment(
                                 if (resumeFrom > 0) {
                                     seekTo(resumeFrom)
                                     resumeFrom = -1
+                                } else if (playbackEpisode.data.lastPlayPosition > 0) {
+                                    // 距离结束小于10秒,当作播放结束
+                                    if (playbackEpisode.data.videoDuration > 0 && playbackEpisode.data.videoDuration - playbackEpisode.data.lastPlayPosition < 10_000) {
+                                        requireContext().showShortToast("上次已播放完,将从头开始播放")
+                                    } else {
+                                        val seekTo = playbackEpisode.data.lastPlayPosition
+                                        exoplayer?.seekTo(seekTo)
+                                        requireContext().showShortToast("已定位到上次播放位置:${(seekTo / 1000).secondsToDuration()}")
+                                    }
                                 }
                                 play()
                             }
@@ -96,6 +108,21 @@ class VideoPlaybackFragment(
                 .apply {
                     prepareGlue(this)
                     playWhenReady = true
+                    addListener(object : Player.Listener {
+                        override fun onPlaybackStateChanged(playbackState: Int) {
+                            if (playbackState == ExoPlayer.STATE_ENDED) {
+                                viewModel.playNextEpisodeIfExists()
+                            }
+                        }
+
+                        override fun onIsPlayingChanged(isPlaying: Boolean) {
+                            if (isPlaying) {
+                                viewModel.startSaveHistory()
+                            } else {
+                                viewModel.stopSaveHistory()
+                            }
+                        }
+                    })
                 }
 
     }
@@ -120,7 +147,10 @@ class VideoPlaybackFragment(
                 it.add(PlayListAction(requireContext()))
                 it.add(ReplayAction(requireContext()))
             },
-            updateProgress = {}).apply {
+            updateProgress = {
+                viewModel.currentPlayPosition = localExoplayer.currentPosition
+                viewModel.videoDuration = localExoplayer.duration
+            }).apply {
             host = VideoSupportFragmentGlueHost(this@VideoPlaybackFragment)
             title = viewModel.videoTitle
             // Enable seek manually since PlaybackTransportControlGlue.getSeekProvider() is null,

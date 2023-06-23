@@ -31,7 +31,10 @@ import io.github.peacefulprogram.dy555.http.MediaCardData
 @OptIn(ExperimentalTvMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun VideoCard(
-    width: Dp, height: Dp, video: MediaCardData,
+    width: Dp,
+    height: Dp,
+    video: MediaCardData,
+    modifier: Modifier = Modifier,
     focusedScale: Float = 1.1f,
     onVideoLongClick: (MediaCardData) -> Unit = {},
     onVideoClick: (MediaCardData) -> Unit = {},
@@ -40,18 +43,18 @@ fun VideoCard(
     var focused by rememberSaveable {
         mutableStateOf(false)
     }
-    var modifier = Modifier
+    var actualModifier = modifier
         .size(width = width, height = height)
         .onFocusChanged {
             focused = it.isFocused || it.hasFocus
         }
     if (onVideoKeyEvent != null) {
-        modifier = modifier.onPreviewKeyEvent {
+        actualModifier = actualModifier.onPreviewKeyEvent {
             onVideoKeyEvent(video, it)
         }
     }
     CompactCard(
-        modifier = modifier,
+        modifier = actualModifier,
         onClick = { onVideoClick(video) },
         onLongClick = { onVideoLongClick(video) },
         image = {

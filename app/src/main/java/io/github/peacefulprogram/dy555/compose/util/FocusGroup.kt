@@ -1,14 +1,15 @@
 package io.github.peacefulprogram.dy555.compose.util
 
-// Copied from https://github.com/android/tv-samples/blob/main/JetStreamCompose/jetstream/src/main/java/com/google/jetstream/presentation/utils/FocusGroup.kt
+// Copied from https://cs.android.com/androidx/platform/frameworks/support/+/77b9612a31d9ec83bd725a6de3b39b513d299405:tv/integration-tests/playground/src/main/java/androidx/tv/integration/playground/FocusGroup.kt;bpv=1;bpt=0
+
 /*
- * Copyright 2023 Google LLC
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * https://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,8 +19,8 @@ package io.github.peacefulprogram.dy555.compose.util
  */
 
 import android.annotation.SuppressLint
-import android.util.Log
-import androidx.compose.foundation.focusable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -35,6 +36,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
@@ -48,14 +50,13 @@ import androidx.tv.foundation.ExperimentalTvFoundationApi
  * @param content the content that is present within the group and can use focus-group modifier
  * extensions.
  */
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @ExperimentalTvFoundationApi
 @Composable
 fun FocusGroup(
     modifier: Modifier = Modifier,
     content: @Composable FocusGroupScope.() -> Unit
 ) {
-    val focusManager = LocalFocusManager.current
     val focusGroupKeyHash = currentCompositeKeyHash
 
     // TODO: Is this the intended way to call rememberSaveable
@@ -70,26 +71,19 @@ fun FocusGroup(
 
     Box(
         modifier = modifier
-            .onFocusChanged {
-                if (it.isFocused) {
-                    if (state.noRecordedState()) {
-                        focusManager.moveFocus(FocusDirection.Enter)
+            .focusProperties {
+                enter = {
+                    if (state.hasRecordedState()) {
+                        state.focusRequester
                     } else {
-                        if (state.focusRequester != FocusRequester.Default) {
-                            try {
-                                state.focusRequester.requestFocus()
-                            } catch (e: Exception) {
-                                Log.w("TvFocusGroup", "TvFocusGroup: Failed to request focus", e)
-                            }
-                        } else {
-                            focusManager.moveFocus(FocusDirection.Enter)
-                        }
+                        FocusRequester.Default
                     }
                 }
             }
-            .focusable(),
-        content = { FocusGroupScope(state).content() }
-    )
+            .focusGroup()
+    ) {
+        FocusGroupScope(state).content()
+    }
 }
 
 /**
@@ -178,6 +172,8 @@ internal class FocusGroupState(
             this.focusRequester = focusRequester
         }
     }
+
+    internal fun hasRecordedState(): Boolean = !noRecordedState()
 
     internal fun noRecordedState(): Boolean =
         previousFocusedItemHash.value == null && focusRequester == FocusRequester.Default

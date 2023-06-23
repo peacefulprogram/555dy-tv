@@ -9,7 +9,7 @@ android {
     compileSdk = 33
     defaultConfig {
         applicationId = "io.github.peacefulprogram.dy555"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 33
         versionCode = 1
         versionName = "1.0"
@@ -20,7 +20,6 @@ android {
 
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")
-            arg("room.generateKotlin", "true")
         }
     }
 
@@ -61,7 +60,7 @@ android {
 
 
 dependencies {
-    val roomVersion = "2.5.0"
+    val roomVersion = "2.5.1"
     val coilVersion = "2.4.0"
     val composeTvVersion = "1.0.0-alpha07"
     val media3Version = "1.0.2"
@@ -77,17 +76,20 @@ dependencies {
     implementation("androidx.leanback:leanback:1.0.0")
     implementation("androidx.compose.material:material-icons-extended:1.4.3")
 
+    implementation("com.google.accompanist:accompanist-permissions:0.30.1")
+
     // paging
-    implementation("androidx.paging:paging-compose:3.2.0-beta01")
+    implementation("androidx.paging:paging-compose:3.2.0-rc01")
 
     // compose tv
     implementation("androidx.tv:tv-foundation:$composeTvVersion")
     implementation("androidx.tv:tv-material:$composeTvVersion")
+    implementation("androidx.room:room-paging:$roomVersion")
 
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     // room
     implementation("androidx.room:room-runtime:$roomVersion")
-    annotationProcessor("androidx.room:room-compiler:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
 
     // coil
@@ -113,9 +115,6 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
-//    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-//    androidTestImplementation(platform("androidx.compose:compose-bom:2022.10.00"))
-//    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

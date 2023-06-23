@@ -3,13 +3,18 @@ package io.github.peacefulprogram.dy555
 import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
+import androidx.room.Room
 import cn.hutool.crypto.digest.MD5
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import io.github.peacefulprogram.dy555.http.HttpDataRepository
+import io.github.peacefulprogram.dy555.room.Dy555Database
 import io.github.peacefulprogram.dy555.viewmodel.CategoriesViewModel
 import io.github.peacefulprogram.dy555.viewmodel.HomeViewModel
+import io.github.peacefulprogram.dy555.viewmodel.PlayHistoryViewModel
 import io.github.peacefulprogram.dy555.viewmodel.PlaybackViewModel
+import io.github.peacefulprogram.dy555.viewmodel.SearchResultViewModel
+import io.github.peacefulprogram.dy555.viewmodel.SearchViewModel
 import io.github.peacefulprogram.dy555.viewmodel.VideoDetailViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -39,28 +44,37 @@ class Dy555Application : Application(), ImageLoaderFactory {
         startKoin {
             androidContext(this@Dy555Application)
             androidLogger()
-            modules(httpModule(), viewModelModule())
+            modules(httpModule(), viewModelModule(), roomModule())
         }
         reloadVideoServer()
         super.onCreate()
     }
 
-    override fun newImageLoader(): ImageLoader = ImageLoader.Builder(this)
-        .okHttpClient {
-            OkHttpClient.Builder()
-                .hostnameVerifier { _, _ -> true }
-                .addInterceptor { chain ->
-                    chain.request()
-                        .newBuilder()
-                        .header("user-agent", Constants.USER_AGENT)
-                        .header("referer", Constants.BASE_URL)
-                        .build()
-                        .let { chain.proceed(it) }
-                }
-                .sslSocketFactory(sslSocketFactory, trustManager)
-                .build()
+    private fun roomModule() = module {
+        single {
+            Room.databaseBuilder(this@Dy555Application, Dy555Database::class.java, "dy555").build()
         }
-        .build()
+
+        single {
+            get<Dy555Database>().searchHistoryDao()
+        }
+
+        single {
+            get<Dy555Database>().videoHistoryDao()
+        }
+
+        single {
+            get<Dy555Database>().episodeHistoryDao()
+        }
+
+    }
+
+    override fun newImageLoader(): ImageLoader = ImageLoader.Builder(this).okHttpClient {
+        OkHttpClient.Builder().hostnameVerifier { _, _ -> true }.addInterceptor { chain ->
+            chain.request().newBuilder().header("user-agent", Constants.USER_AGENT)
+                .header("referer", Constants.BASE_URL).build().let { chain.proceed(it) }
+        }.sslSocketFactory(sslSocketFactory, trustManager).build()
+    }.build()
 
 
     companion object {
@@ -141,9 +155,16 @@ class Dy555Application : Application(), ImageLoaderFactory {
 
     private fun viewModelModule() = module {
         viewModel { HomeViewModel(get()) }
-        viewModel { parameters -> VideoDetailViewModel(videoId = parameters.get(), get()) }
-        viewModel { PlaybackViewModel(get()) }
+        viewModel { parameters ->
+            VideoDetailViewModel(
+                videoId = parameters.get(), get(), get(), get()
+            )
+        }
+        viewModel { PlaybackViewModel(get(), get(), get()) }
         viewModel { parameters -> CategoriesViewModel(get(), parameters.get()) }
+        viewModel { SearchViewModel(get(), get()) }
+        viewModel { parameters -> SearchResultViewModel(parameters.get(), get()) }
+        viewModel { PlayHistoryViewModel(get()) }
     }
 
     fun reloadVideoServer() {

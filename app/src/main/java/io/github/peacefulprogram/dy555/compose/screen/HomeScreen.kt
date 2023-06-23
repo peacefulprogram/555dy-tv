@@ -3,6 +3,8 @@ package io.github.peacefulprogram.dy555.compose.screen
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Arrangement.spacedBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,6 +16,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -49,6 +54,8 @@ import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.ClickableSurfaceScale
 import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.Icon
+import androidx.tv.material3.IconButton
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Tab
@@ -61,6 +68,8 @@ import io.github.peacefulprogram.dy555.Constants.VideoCardWidth
 import io.github.peacefulprogram.dy555.R
 import io.github.peacefulprogram.dy555.activity.CategoriesActivity
 import io.github.peacefulprogram.dy555.activity.DetailActivity
+import io.github.peacefulprogram.dy555.activity.PlayHistoryActivity
+import io.github.peacefulprogram.dy555.activity.SearchActivity
 import io.github.peacefulprogram.dy555.compose.common.ErrorTip
 import io.github.peacefulprogram.dy555.compose.common.Loading
 import io.github.peacefulprogram.dy555.compose.common.VideoCard
@@ -190,41 +199,74 @@ fun HomeTopNav(
     modifier: Modifier = Modifier,
     tabContent: @Composable (HomeNavTabItem) -> Unit
 ) {
-    Column(Modifier.fillMaxSize()) {
-        FocusGroup(modifier = modifier) {
-            Row(Modifier.fillMaxWidth()) {
-                TabRow(
-                    selectedTabIndex = selectedTabIndex,
-                    indicator = {
-                        TabRowDefaults.UnderlinedIndicator(
-                            currentTabPosition = it[selectedTabIndex],
-                            activeColor = MaterialTheme.colorScheme.border
-                        )
+    val context = LocalContext.current
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            FocusGroup {
+                Row(horizontalArrangement = spacedBy(10.dp)) {
+                    IconButton(
+                        onClick = {
+                            SearchActivity.startActivity(context)
+                        },
+                        modifier = Modifier.restorableFocus()
+                    ) {
+                        Icon(imageVector = Icons.Default.Search, contentDescription = "search")
                     }
-                ) {
-                    tabItems.forEachIndexed { tabIndex, tab ->
-                        Tab(
-                            selected = selectedTabIndex == tabIndex,
-                            modifier = Modifier.restorableFocus(),
-                            onFocus = { onTabFocus(tabIndex) },
-                            colors = TabDefaults.underlinedIndicatorTabColors(
-                                selectedContentColor = colorResource(id = R.color.rose200),
-                                focusedSelectedContentColor = colorResource(id = R.color.rose400)
+                    IconButton(
+                        onClick = {
+                            PlayHistoryActivity.startActivity(context)
+                        },
+                        modifier = Modifier.restorableFocus()
+                    ) {
+                        Icon(imageVector = Icons.Default.History, contentDescription = "history")
+                    }
+
+                }
+
+            }
+
+            FocusGroup(modifier = modifier) {
+                Row(Modifier.fillMaxWidth()) {
+                    TabRow(
+                        selectedTabIndex = selectedTabIndex,
+                        indicator = {
+                            TabRowDefaults.UnderlinedIndicator(
+                                currentTabPosition = it[selectedTabIndex],
+                                activeColor = MaterialTheme.colorScheme.border
                             )
-                        ) {
-                            Text(
-                                text = stringResource(tab.tabName),
-                                modifier = Modifier.padding(8.dp, 4.dp),
-                            )
+                        }
+                    ) {
+                        tabItems.forEachIndexed { tabIndex, tab ->
+                            Tab(
+                                selected = selectedTabIndex == tabIndex,
+                                modifier = Modifier.restorableFocus(),
+                                onFocus = { onTabFocus(tabIndex) },
+                                colors = TabDefaults.underlinedIndicatorTabColors(
+                                    selectedContentColor = colorResource(id = R.color.rose200),
+                                    focusedSelectedContentColor = colorResource(id = R.color.rose400)
+                                )
+                            ) {
+                                Text(
+                                    text = stringResource(tab.tabName),
+                                    modifier = Modifier.padding(8.dp, 4.dp),
+                                )
+                            }
                         }
                     }
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                Text(text = stringResource(R.string.app_name))
-            }
 
+            }
+            tabContent(tabItems[selectedTabIndex])
         }
-        tabContent(tabItems[selectedTabIndex])
+
+        Text(
+            text = stringResource(R.string.app_name),
+            style = MaterialTheme.typography.headlineMedium
+        )
     }
 
 
@@ -291,7 +333,7 @@ fun VideoCategories(
                     when (keyEvent.key) {
                         Key.Back -> {
                             coroutineScope.launch {
-                                state.animateScrollToItem(0)
+                                state.scrollToItem(0)
                             }
                             onRequestTabFocus()
                             true
@@ -315,7 +357,7 @@ fun VideoCategories(
     )
 }
 
-@OptIn(ExperimentalTvMaterial3Api::class)
+@OptIn(ExperimentalTvMaterial3Api::class, ExperimentalTvFoundationApi::class)
 @Composable
 fun VideoRow(
     title: String,
@@ -353,24 +395,27 @@ fun VideoRow(
             }
         }
         Spacer(modifier = Modifier.height(scaleHeight))
-        TvLazyRow(content = {
-            item {
-                Spacer(modifier = Modifier.width(scaleWidth))
-            }
-            items(items = videos, key = { it.id }) { video ->
-                VideoCard(
-                    width = VideoCardWidth,
-                    height = VideoCardHeight,
-                    video = video,
-                    focusedScale = focusedScale,
-                    onVideoClick = onVideoClick,
-                    onVideoKeyEvent = onVideoKeyEvent
-                )
-            }
-            item {
-                Spacer(modifier = Modifier.width(scaleWidth))
-            }
-        })
+        FocusGroup {
+            TvLazyRow(content = {
+                item {
+                    Spacer(modifier = Modifier.width(scaleWidth))
+                }
+                items(items = videos, key = { it.id }) { video ->
+                    VideoCard(
+                        width = VideoCardWidth,
+                        height = VideoCardHeight,
+                        video = video,
+                        modifier = Modifier.restorableFocus(),
+                        focusedScale = focusedScale,
+                        onVideoClick = onVideoClick,
+                        onVideoKeyEvent = onVideoKeyEvent
+                    )
+                }
+                item {
+                    Spacer(modifier = Modifier.width(scaleWidth))
+                }
+            })
+        }
         Spacer(modifier = Modifier.height(scaleHeight))
     }
 }
@@ -416,7 +461,7 @@ fun NetflixVideos(
                             when (event.key) {
                                 Key.Back -> {
                                     coroutineScope.launch {
-                                        gridState.animateScrollToItem(0)
+                                        gridState.scrollToItem(0)
                                     }
                                     onRequestTabFocus()
                                     true

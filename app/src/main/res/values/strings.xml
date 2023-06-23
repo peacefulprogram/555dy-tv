@@ -17,4 +17,16 @@
     <string name="activity_categories">视频索引页</string>
     <string name="video_filter_dialog_title">筛选</string>
     <string name="grid_no_data_tip">暂无数据</string>
+    <string name="search_history">搜索历史:</string>
+    <string name="activity_search">搜索页</string>
+    <string name="speak_search_keyworld">请说出要搜索的内容</string>
+    <string name="input_search_keyword">输入关键词</string>
+    <string name="activity_search_result">搜索结果页</string>
+    <string name="title_search_result">搜索结果</string>
+    <string name="button_delete">删除</string>
+    <string name="button_delete_all">删除全部</string>
+    <string name="confirm_delete_template">是否删除%s?</string>
+    <string name="recommend_search_kw">当前热搜:</string>
+    <string name="playback_history">播放历史</string>
+    <string name="activity_play_history">播放历史页</string>
 </resources>

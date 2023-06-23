@@ -105,7 +105,7 @@ fun CategoriesScreen(
                 .onPreviewKeyEvent {
                     if (it.key == Key.Back && it.type == KeyEventType.KeyUp && state.firstVisibleItemIndex > 0) {
                         coroutineScope.launch {
-                            state.animateScrollToItem(0)
+                            state.scrollToItem(0)
                             titleFocusRequester.requestFocus()
                         }
                         true

@@ -10,6 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ExperimentalTvMaterial3Api
+import com.jing.ddys.ext.showShortToast
 import io.github.peacefulprogram.dy555.compose.screen.HomeScreen
 import io.github.peacefulprogram.dy555.compose.theme.Dy555Theme
 
@@ -17,6 +18,8 @@ import io.github.peacefulprogram.dy555.compose.theme.Dy555Theme
  * Loads [MainFragment].
  */
 class MainActivity : ComponentActivity() {
+
+    private var lastClickBackTime: Long = 0L
 
     @OptIn(ExperimentalTvMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,6 +38,16 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onBackPressed() {
+        val now = System.currentTimeMillis()
+        if (now - lastClickBackTime < 2000) {
+            super.onBackPressed()
+        } else {
+            lastClickBackTime = now
+            this.showShortToast("再次点击退出应用")
         }
     }
 }

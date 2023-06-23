@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
-import androidx.paging.cachedIn
 import io.github.peacefulprogram.dy555.http.BasicPagingSource
 import io.github.peacefulprogram.dy555.http.HttpDataRepository
 import io.github.peacefulprogram.dy555.http.MediaCardData
@@ -63,7 +62,7 @@ class HomeViewModel(private val repository: HttpDataRepository) : ViewModel() {
         BasicPagingSource(repository::getNetflix)
     }
         .flow
-        .cachedIn(viewModelScope)
+//        .cachedIn(viewModelScope)
 
     fun refreshRecommend(autoRefresh: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {

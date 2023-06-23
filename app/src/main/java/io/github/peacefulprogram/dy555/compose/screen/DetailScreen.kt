@@ -48,10 +48,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import androidx.tv.foundation.ExperimentalTvFoundationApi
 import androidx.tv.foundation.PivotOffsets
 import androidx.tv.foundation.lazy.list.TvLazyColumn
+import androidx.tv.foundation.lazy.list.TvLazyListState
 import androidx.tv.foundation.lazy.list.TvLazyRow
 import androidx.tv.foundation.lazy.list.items
+import androidx.tv.foundation.lazy.list.rememberTvLazyListState
 import androidx.tv.material3.Border
 import androidx.tv.material3.CardDefaults
 import androidx.tv.material3.ClickableSurfaceDefaults
@@ -68,19 +71,24 @@ import io.github.peacefulprogram.dy555.R
 import io.github.peacefulprogram.dy555.activity.CategoriesActivity
 import io.github.peacefulprogram.dy555.activity.DetailActivity
 import io.github.peacefulprogram.dy555.activity.PlaybackActivity
+import io.github.peacefulprogram.dy555.activity.SearchResultActivity
 import io.github.peacefulprogram.dy555.compose.common.ErrorTip
 import io.github.peacefulprogram.dy555.compose.common.Loading
 import io.github.peacefulprogram.dy555.compose.common.VideoCard
 import io.github.peacefulprogram.dy555.compose.theme.Dy555Theme
+import io.github.peacefulprogram.dy555.compose.util.FocusGroup
+import io.github.peacefulprogram.dy555.ext.secondsToDuration
 import io.github.peacefulprogram.dy555.http.Episode
 import io.github.peacefulprogram.dy555.http.MediaCardData
 import io.github.peacefulprogram.dy555.http.Resource
 import io.github.peacefulprogram.dy555.http.VideoDetailData
 import io.github.peacefulprogram.dy555.http.VideoInfoLine
 import io.github.peacefulprogram.dy555.http.VideoTag
+import io.github.peacefulprogram.dy555.room.entity.VideoHistory
 import io.github.peacefulprogram.dy555.viewmodel.VideoDetailViewModel
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun DetailScreen(viewModel: VideoDetailViewModel) {
     val videoDetailResource = viewModel.videoDetail.collectAsState().value
@@ -96,26 +104,79 @@ fun DetailScreen(viewModel: VideoDetailViewModel) {
     }
     val videoDetail = (videoDetailResource as Resource.Success<VideoDetailData>).data
     val context = LocalContext.current
+    var reverseEpisode by remember {
+        mutableStateOf(false)
+    }
+
+    val playlists = remember(reverseEpisode) {
+        if (reverseEpisode) {
+            videoDetail.playLists.map { it.copy(second = it.second.reversed()) }
+        } else {
+            videoDetail.playLists
+        }
+    }
     TvLazyColumn(
         modifier = Modifier.fillMaxSize(), content = {
             item {
-                VideoInfoRow(videoDetail = videoDetail)
+                VideoInfoRow(videoDetail = videoDetail, viewModel = viewModel)
             }
-            items(items = videoDetail.playLists, key = { it.first }) { playlist ->
-                PlayListRow(playlist) {
+            items(count = playlists.size, key = { playlists[it].first }) { playlistIndex ->
+                val playlist = playlists[playlistIndex]
+                val listState = rememberTvLazyListState()
+                PlayListRow(episodes = playlist.second, listState = listState, title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = playlist.first, style = MaterialTheme.typography.titleMedium
+                        )
+                        if (playlistIndex == 0) {
+                            Text(text = " | ")
+                            Surface(
+                                onClick = {
+                                    reverseEpisode = !reverseEpisode
+                                },
+                                scale = ClickableSurfaceScale.None,
+                                colors = ClickableSurfaceDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface
+                                ),
+                                shape = ClickableSurfaceDefaults.shape(shape = MaterialTheme.shapes.small),
+                                border = ClickableSurfaceDefaults.border(
+                                    focusedBorder = Border(
+                                        BorderStroke(
+                                            2.dp, MaterialTheme.colorScheme.border
+                                        )
+                                    )
+                                ),
+                            ) {
+                                Text(
+                                    text = if (reverseEpisode) "倒序" else "正序",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.padding(8.dp, 4.dp)
+                                )
+                            }
+                        }
+                    }
+                }) {
+                    viewModel.saveVideoHistory(
+                        VideoHistory(
+                            id = videoDetail.id, pic = videoDetail.pic, title = videoDetail.title
+                        )
+                    )
                     PlaybackActivity.startActivity(
+                        videoId = videoDetail.id,
                         episode = it,
                         videoName = videoDetail.title,
                         context = context,
-                        playlist = playlist.second
+                        playlist = videoDetail.playLists[playlistIndex].second // 从原始数据中取未被排序的
                     )
+                }
+                LaunchedEffect(reverseEpisode) {
+                    listState.scrollToItem(0)
                 }
             }
             item {
                 RelativeVideoRow(videoDetail.relatedVideos)
             }
-        },
-        verticalArrangement = spacedBy(10.dp)
+        }, verticalArrangement = spacedBy(10.dp)
     )
 }
 
@@ -146,21 +207,30 @@ fun RelativeVideoRow(videos: List<MediaCardData>) {
     }
 }
 
+@OptIn(ExperimentalTvFoundationApi::class)
 @Composable
-fun PlayListRow(playlist: Pair<String, List<Episode>>, onEpisodeClick: (Episode) -> Unit) {
+fun PlayListRow(
+    episodes: List<Episode>,
+    title: @Composable () -> Unit,
+    listState: TvLazyListState = rememberTvLazyListState(),
+    onEpisodeClick: (Episode) -> Unit
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(text = playlist.first, style = MaterialTheme.typography.titleMedium)
+        title()
         Spacer(modifier = Modifier.height(5.dp))
-        TvLazyRow(
-            content = {
-                items(items = playlist.second, key = { it.id }) { ep ->
-                    VideoTag(tagName = ep.name) {
-                        onEpisodeClick(ep)
+        FocusGroup {
+            TvLazyRow(
+                state = listState, content = {
+                    items(items = episodes, key = { it.id }) { ep ->
+                        VideoTag(
+                            modifier = Modifier.restorableFocus(), tagName = ep.name
+                        ) {
+                            onEpisodeClick(ep)
+                        }
                     }
-                }
-            },
-            horizontalArrangement = spacedBy(5.dp)
-        )
+                }, horizontalArrangement = spacedBy(5.dp)
+            )
+        }
     }
 }
 
@@ -175,7 +245,11 @@ private fun jumpToByTag(url: String, context: Context) {
             context
         )
     } else if (url.startsWith("/vodsearch")) {
-        TODO("搜索页")
+        SearchResultActivity.startActivity(
+            context, url.substring(
+                url.lastIndexOf('/') + 1, url.lastIndexOf('.')
+            )
+        )
     } else {
         Toast.makeText(context, "不支持的url:$url", Toast.LENGTH_LONG).show()
     }
@@ -184,7 +258,7 @@ private fun jumpToByTag(url: String, context: Context) {
 
 @OptIn(ExperimentalTvMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun VideoInfoRow(videoDetail: VideoDetailData) {
+fun VideoInfoRow(videoDetail: VideoDetailData, viewModel: VideoDetailViewModel) {
     val focusRequester = remember {
         FocusRequester()
     }
@@ -228,6 +302,15 @@ fun VideoInfoRow(videoDetail: VideoDetailData) {
                 maxLines = 1,
                 modifier = Modifier.basicMarquee()
             )
+            val playHistory = viewModel.latestProgress.collectAsState().value
+            if (playHistory is Resource.Success) {
+                val his = playHistory.data
+                Text(
+                    text = "上次播放到${his.name} ${(his.progress / 1000).secondsToDuration()}/${(his.duration / 1000).secondsToDuration()}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
             ProvideTextStyle(value = MaterialTheme.typography.bodySmall) {
                 TvLazyColumn(
                     content = {
@@ -385,9 +468,9 @@ fun VideoInfoRow(videoDetail: VideoDetailData) {
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun VideoTag(tagName: String, onClick: () -> Unit = {}) {
+fun VideoTag(tagName: String, modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
     Surface(
-        modifier = Modifier,
+        modifier = modifier,
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.White.copy(alpha = 0.2f),
             focusedContainerColor = Color.White.copy(alpha = 0.2f),

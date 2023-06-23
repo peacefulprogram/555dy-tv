@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
-import androidx.paging.cachedIn
 import io.github.peacefulprogram.dy555.http.BasicPagingSource
 import io.github.peacefulprogram.dy555.http.HttpDataRepository
 import io.github.peacefulprogram.dy555.http.Resource
@@ -52,7 +51,7 @@ class CategoriesViewModel(
         }
     }
         .flow
-        .cachedIn(viewModelScope)
+//        .cachedIn(viewModelScope)
 
     init {
         queryFilters()

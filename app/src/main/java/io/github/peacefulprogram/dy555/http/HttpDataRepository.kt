@@ -333,11 +333,38 @@ class HttpDataRepository(private val okHttpClient: OkHttpClient) {
         return result ?: ""
     }
 
+    fun searchVideo(searchParam: List<String>, pageNumber: Int): PageResult<MediaCardData> {
+        val pathParam = searchParam.toMutableList().apply {
+            this[10] = pageNumber.toString()
+        }.joinToString(separator = "-")
+        val doc = getDocument("${Constants.BASE_URL}/vodsearch/$pathParam.html")
+        val videos = doc.select(".module-card-item").map { card ->
+            val id = card.selectFirst("a")!!.attr("href").run {
+                substring(lastIndexOf('/') + 1, lastIndexOf('.'))
+            }
+            MediaCardData(
+                id = id,
+                title = card.selectFirst(".module-card-item-title")!!.text().trim(),
+                pic = card.selectFirst("img")!!.dataset()["original"]!!,
+                note = card.selectFirst(".module-item-note")?.text()?.trim(),
+            )
+        }
+        return PageResult(
+            data = videos, page = pageNumber, hasNextPage = hasNextPage(doc)
+        )
+    }
+
+    fun querySearchRecommend(): List<String> {
+        val doc = getDocument(Constants.BASE_URL)
+        return doc.selectFirst(".search-recommend")!!.select("a").map { link ->
+            link.text().trim()
+        }
+    }
+
     companion object {
 
         val appKey by lazy {
-            MD5.create()
-                .digestHex("www.555dy.com")
+            MD5.create().digestHex("www.555dy.com")
         }
 
         val clientKey by lazy {

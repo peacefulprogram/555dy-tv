@@ -6,15 +6,22 @@ import androidx.lifecycle.viewModelScope
 import io.github.peacefulprogram.dy555.http.HttpDataRepository
 import io.github.peacefulprogram.dy555.http.Resource
 import io.github.peacefulprogram.dy555.http.VideoDetailData
+import io.github.peacefulprogram.dy555.room.dao.EpisodeHistoryDao
+import io.github.peacefulprogram.dy555.room.dao.VideoHistoryDao
+import io.github.peacefulprogram.dy555.room.entity.EpisodeHistory
+import io.github.peacefulprogram.dy555.room.entity.VideoHistory
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class VideoDetailViewModel(
     val videoId: String,
-    private val repository: HttpDataRepository
+    private val repository: HttpDataRepository,
+    private val videoHistoryDao: VideoHistoryDao,
+    private val episodeHistoryDao: EpisodeHistoryDao
 ) : ViewModel() {
 
     private val TAG = VideoDetailViewModel::class.java.simpleName
@@ -25,8 +32,32 @@ class VideoDetailViewModel(
     val videoDetail: StateFlow<Resource<VideoDetailData>>
         get() = _videoDetail
 
+    private val _latestProgress: MutableStateFlow<Resource<EpisodeHistory>> =
+        MutableStateFlow(Resource.Loading)
+
+
+    val latestProgress: StateFlow<Resource<EpisodeHistory>>
+        get() = _latestProgress
+
     init {
         reloadVideoDetail()
+        watchHistory()
+    }
+
+    private fun watchHistory() {
+        viewModelScope.launch(Dispatchers.Default) {
+            episodeHistoryDao.queryLatestProgress(videoId).collectLatest {
+                    if (it != null) {
+                        _latestProgress.emit(Resource.Success(it))
+                    }
+                }
+        }
+    }
+
+    fun saveVideoHistory(video: VideoHistory) {
+        viewModelScope.launch(Dispatchers.IO) {
+            videoHistoryDao.saveVideo(video)
+        }
     }
 
     fun reloadVideoDetail() {

@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Arrangement.spacedBy
 import androidx.compose.foundation.layout.Box
@@ -23,9 +24,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +46,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
@@ -124,22 +128,24 @@ fun HomeScreen(
             job.cancel()
         }
     }
-    HomeTopNav(
-        selectedTabIndex = selectedTabIndex,
-        onTabFocus = { selectedTabIndex = it },
-        tabItems = TabItems,
-        modifier = Modifier.focusRequester(tabFocusRequester)
-    ) { tab ->
-        AnimatedContent(
-            targetState = tab,
-            contentKey = { it },
-            transitionSpec = {
-                fadeIn(animationSpec = tween(durationMillis = 200, delayMillis = 90))
-                    .togetherWith(fadeOut(animationSpec = tween(90)))
-            }
-        ) { curTab ->
+    Column(Modifier.fillMaxSize()) {
+        CompositionLocalProvider(LocalTopNavSelectedTabIndex provides selectedTabIndex) {
+            HomeTopNav(
+                onTabFocus = { selectedTabIndex = it },
+                tabItems = TabItems,
+                navTabFocusRequester = tabFocusRequester
+            )
+        }
+
+        Spacer(modifier = Modifier.height(15.dp))
+
+        AnimatedContent(targetState = selectedTabIndex, contentKey = { it }, transitionSpec = {
+            fadeIn(animationSpec = tween(durationMillis = 200, delayMillis = 90)).togetherWith(
+                fadeOut(animationSpec = tween(90))
+            )
+        }) { curTabIndex ->
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                when (curTab) {
+                when (TabItems[curTabIndex]) {
                     HomeNavTabItem.RECOMMEND -> VideoCategories(
                         dataProvider = viewModel::recommend,
                         onRequestRefresh = viewModel::refreshRecommend,
@@ -148,8 +154,7 @@ fun HomeScreen(
                     )
 
                     HomeNavTabItem.NETFLIX -> NetflixVideos(
-                        viewModel = viewModel,
-                        onRequestTabFocus = tabFocusRequester::requestFocus,
+                        viewModel = viewModel, onRequestTabFocus = tabFocusRequester::requestFocus,
                         onVideoClick = navigateToDetail
                     )
 
@@ -187,8 +192,6 @@ fun HomeScreen(
                 }
             }
         }
-
-
     }
 
     LaunchedEffect(Unit) {
@@ -200,61 +203,62 @@ fun HomeScreen(
 
 }
 
+// 顶部分类导航栏选中tab的索引,直接放到组件参数中R8minify会失败
+// todo: 找到原因并改为直接使用组件参数
+private val LocalTopNavSelectedTabIndex = compositionLocalOf<Int> { error("not init") }
+
 @OptIn(ExperimentalTvMaterial3Api::class, ExperimentalTvFoundationApi::class)
 @Composable
 fun HomeTopNav(
-    selectedTabIndex: Int,
+    modifier: Modifier = Modifier,
     onTabFocus: (Int) -> Unit,
     tabItems: Array<HomeNavTabItem>,
-    modifier: Modifier = Modifier,
-    tabContent: @Composable (HomeNavTabItem) -> Unit
+    navTabFocusRequester: FocusRequester = remember {
+        FocusRequester()
+    }
 ) {
     val context = LocalContext.current
     val tabNames = remember {
         tabItems.map { context.getString(it.tabName) }.toList()
     }
     Row(
-        Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween, modifier = modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.fillMaxSize()) {
+        Column {
             FocusGroup {
                 Row(horizontalArrangement = spacedBy(10.dp)) {
                     IconButton(
                         onClick = {
                             SearchActivity.startActivity(context)
-                        },
-                        modifier = Modifier.restorableFocus()
+                        }, modifier = Modifier.initiallyFocused()
                     ) {
                         Icon(imageVector = Icons.Default.Search, contentDescription = "search")
                     }
                     IconButton(
                         onClick = {
                             PlayHistoryActivity.startActivity(context)
-                        },
-                        modifier = Modifier.restorableFocus()
+                        }, modifier = Modifier.restorableFocus()
                     ) {
-                        Icon(imageVector = Icons.Default.History, contentDescription = "history")
+                        Icon(
+                            imageVector = Icons.Default.History, contentDescription = "history"
+                        )
                     }
 
                 }
-
             }
-
+            Spacer(modifier = Modifier.height(5.dp))
             CustomTabRow(
-                modifier = modifier,
-                selectedTabIndex = selectedTabIndex,
+                modifier = Modifier.focusRequester(navTabFocusRequester),
+                selectedTabIndex = LocalTopNavSelectedTabIndex.current,
                 tabs = tabNames,
                 onTabFocus = onTabFocus
             )
-            Spacer(modifier = Modifier.height(15.dp))
-            tabContent(tabItems[selectedTabIndex])
         }
 
-        Text(
-            text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.headlineMedium
+        Image(
+            painter = painterResource(id = R.drawable.logo),
+            contentDescription = "logo",
+            modifier = Modifier.height(80.dp)
         )
     }
 

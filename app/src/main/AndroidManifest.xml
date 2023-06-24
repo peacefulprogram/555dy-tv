@@ -20,10 +20,10 @@
         android:theme="@style/Theme.Dy555">
         <activity
             android:name=".activity.MainActivity"
-            android:banner="@drawable/app_icon_your_company"
+            android:banner="@drawable/app_banner"
             android:exported="true"
-            android:icon="@drawable/app_icon_your_company"
-            android:logo="@drawable/app_icon_your_company"
+            android:icon="@drawable/app_banner"
+            android:logo="@drawable/app_banner"
             android:screenOrientation="landscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

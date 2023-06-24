@@ -336,7 +336,7 @@ fun VideoInfoRow(videoDetail: VideoDetailData, viewModel: VideoDetailViewModel) 
                                     content = {
                                         items(
                                             items = videoDetail.tags,
-                                            key = VideoTag::name
+                                            key = VideoTag::url
                                         ) { tag ->
                                             VideoTag(tagName = tag.name) {
                                                 jumpToByTag(tag.url, context)
@@ -362,7 +362,7 @@ fun VideoInfoRow(videoDetail: VideoDetailData, viewModel: VideoDetailViewModel) 
                                         content = {
                                             items(
                                                 items = infoLine.tags,
-                                                key = VideoTag::name
+                                                key = VideoTag::url
                                             ) { tag ->
                                                 VideoTag(tagName = tag.name) {
                                                     jumpToByTag(tag.url, context)

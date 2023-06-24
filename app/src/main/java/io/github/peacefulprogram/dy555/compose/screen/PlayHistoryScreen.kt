@@ -92,9 +92,6 @@ fun PlayHistoryScreen(viewModel: PlayHistoryViewModel) {
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
-                    LaunchedEffect(Unit) {
-                        titleFocusRequester.requestFocus()
-                    }
                 }
                 items(count = pagingItems.itemCount) { videoIndex ->
                     val video = pagingItems[videoIndex]!!
@@ -142,6 +139,10 @@ fun PlayHistoryScreen(viewModel: PlayHistoryViewModel) {
                 )
             }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        titleFocusRequester.requestFocus()
     }
 
     val removeVideo = confirmRemoveVideo ?: return

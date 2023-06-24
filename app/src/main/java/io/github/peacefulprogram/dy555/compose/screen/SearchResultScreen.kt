@@ -70,9 +70,6 @@ fun SearchResultScreen(viewModel: SearchResultViewModel) {
                             .focusRequester(titleFocusRequester)
                             .focusable()
                     )
-                    LaunchedEffect(Unit) {
-                        titleFocusRequester.requestFocus()
-                    }
                 }
                 items(count = pagingItems.itemCount) { videoIndex ->
                     val video = pagingItems[videoIndex]!!
@@ -121,5 +118,9 @@ fun SearchResultScreen(viewModel: SearchResultViewModel) {
                 )
             }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        titleFocusRequester.requestFocus()
     }
 }

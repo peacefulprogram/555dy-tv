@@ -37,7 +37,7 @@ class HttpDataRepository(private val okHttpClient: OkHttpClient) {
     private fun getIdFromUrl(url: String): String =
         url.substring(url.lastIndexOf('/') + 1, url.lastIndexOf('.'))
 
-    fun getHomePage(): List<Pair<String, List<MediaCardData>>> {
+    fun getHomePage(): VideosOfType {
         val document = getDocument(Constants.BASE_URL)
         val swiperPanels =
             document.selectFirst(".main .content .sm-swiper .swiper-wrapper")?.children()!!
@@ -56,7 +56,6 @@ class HttpDataRepository(private val okHttpClient: OkHttpClient) {
             )
         }
         val resultList = mutableListOf<Pair<String, List<MediaCardData>>>()
-        resultList.add(Pair("推荐", wideRecommends))
         val otherParts =
             setOf(
                 "本周最佳电影",
@@ -89,7 +88,11 @@ class HttpDataRepository(private val okHttpClient: OkHttpClient) {
             }
             resultList.add(Pair(title, groupVideos))
         }
-        return resultList
+        return VideosOfType(
+            recommendVideos = wideRecommends,
+            ranks = emptyList(),
+            videoGroups = resultList
+        )
     }
 
 
@@ -175,17 +178,46 @@ class HttpDataRepository(private val okHttpClient: OkHttpClient) {
         )
     }
 
-    fun getVideoPageByType(typeId: Int): List<Pair<String, List<MediaCardData>>> {
+    fun getVideoPageByType(typeId: Int): VideosOfType {
         val document = getDocument("${Constants.BASE_URL}/vodtype/${typeId}.html")
         val modules = document.getElementsByClass("module")
+        var recommend = emptyList<MediaCardData>()
         val groups = mutableListOf<Pair<String, List<MediaCardData>>>()
+        var ranks = emptyList<Pair<String, List<MediaCardData>>>()
         for (module in modules) {
             val moduleTitle =
-                module.getElementsByClass("module-title").firstOrNull()?.text() ?: "推荐"
-            val videos = module.select(".module-items > a").map(this::parseVideoLinkElement)
-            groups.add(Pair(moduleTitle, videos))
+                module.getElementsByClass("module-title")
+                    .firstOrNull()
+                    ?.children()
+                    ?.firstOrNull()
+                    ?.textNodes()
+                    ?.firstOrNull()
+                    ?.text() ?: "推荐"
+            if ("排行榜" == moduleTitle) {
+                val rankVideos = module.getElementsByClass("tab-list")
+                val rankNames =
+                    module.getElementsByClass("module-tab-item").map { it.text().trim() }
+                val rankCount = rankVideos.size.coerceAtMost(rankNames.size)
+                ranks = (0 until rankCount).map { index ->
+                    Pair(
+                        rankNames[index],
+                        rankVideos[index].select("a").map(this::parseVideoLinkElement)
+                    )
+                }
+            } else {
+                val videos = module.select(".module-items > a").map(this::parseVideoLinkElement)
+                if (moduleTitle == "推荐") {
+                    recommend = videos
+                } else {
+                    groups.add(Pair(moduleTitle, videos))
+                }
+            }
         }
-        return groups
+        return VideosOfType(
+            recommendVideos = recommend,
+            videoGroups = groups,
+            ranks = ranks
+        )
     }
 
     private fun parseVideoLinkElement(element: Element): MediaCardData {

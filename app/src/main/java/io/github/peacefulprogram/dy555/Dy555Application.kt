@@ -3,10 +3,13 @@ package io.github.peacefulprogram.dy555
 import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
+import android.util.Log
 import androidx.room.Room
+import androidx.room.RoomDatabase
 import cn.hutool.crypto.digest.MD5
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import com.jing.ddys.ext.showLongToast
 import io.github.peacefulprogram.dy555.http.HttpDataRepository
 import io.github.peacefulprogram.dy555.room.Dy555Database
 import io.github.peacefulprogram.dy555.viewmodel.CategoriesViewModel
@@ -31,6 +34,7 @@ import org.koin.dsl.module
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.*
+import java.util.concurrent.Executors
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -38,6 +42,8 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
 class Dy555Application : Application(), ImageLoaderFactory {
+
+    private val TAG = Dy555Application::class.java.simpleName
 
     override fun onCreate() {
         context = this
@@ -52,7 +58,16 @@ class Dy555Application : Application(), ImageLoaderFactory {
 
     private fun roomModule() = module {
         single {
-            Room.databaseBuilder(this@Dy555Application, Dy555Database::class.java, "dy555").build()
+            Room.databaseBuilder(this@Dy555Application, Dy555Database::class.java, "dy555").apply {
+                if (BuildConfig.DEBUG) {
+                    val queryCallback = object : RoomDatabase.QueryCallback {
+                        override fun onQuery(sqlQuery: String, bindArgs: List<Any?>) {
+                            Log.i(TAG, "room sql: $sqlQuery  args: $bindArgs")
+                        }
+                    }
+                    setQueryCallback(queryCallback, Executors.newSingleThreadExecutor())
+                }
+            }.build()
         }
 
         single {
@@ -169,13 +184,16 @@ class Dy555Application : Application(), ImageLoaderFactory {
 
     fun reloadVideoServer() {
         val repository = get<HttpDataRepository>()
+        val defaultVideoServer = "https://player.dwz0.cc:3653/api"
         GlobalScope.launch(Dispatchers.IO) {
-            val url = repository.loadVideoServerUrl()
-            Constants.PLAY_URL_SERVER = if (url.isEmpty()) {
-                "https://player.dwz0.cc:3653/api"
-            } else {
-                url
+            Constants.PLAY_URL_SERVER = try {
+                repository.loadVideoServerUrl()
+            } catch (ex: Exception) {
+                Log.e(TAG, "reloadVideoServer: ${ex.message}", ex)
+                context.showLongToast("加载视频服务器失败,将使用默认地址:${ex.message}")
+                defaultVideoServer
             }
+
 
         }
     }

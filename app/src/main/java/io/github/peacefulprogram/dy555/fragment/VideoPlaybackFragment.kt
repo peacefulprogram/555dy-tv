@@ -55,8 +55,14 @@ class VideoPlaybackFragment(
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.playbackEpisode.collectLatest { playbackEpisode ->
                     when (playbackEpisode) {
-                        Resource.Loading -> {}
+                        Resource.Loading -> {
+                            // 换集时暂停
+                            exoplayer?.pause()
+                            progressBarManager.show()
+                        }
+
                         is Resource.Success -> {
+                            progressBarManager.hide()
                             glue?.subtitle = playbackEpisode.data.name
                             exoplayer?.run {
                                 setMediaItem(MediaItem.fromUri(playbackEpisode.data.url))
@@ -78,7 +84,10 @@ class VideoPlaybackFragment(
                             }
                         }
 
-                        is Resource.Error -> requireContext().showLongToast(playbackEpisode.message)
+                        is Resource.Error -> {
+                            progressBarManager.hide()
+                            requireContext().showLongToast(playbackEpisode.message)
+                        }
                     }
                 }
             }
@@ -119,6 +128,7 @@ class VideoPlaybackFragment(
                             if (isPlaying) {
                                 viewModel.startSaveHistory()
                             } else {
+                                viewModel.saveHistory()
                                 viewModel.stopSaveHistory()
                             }
                         }

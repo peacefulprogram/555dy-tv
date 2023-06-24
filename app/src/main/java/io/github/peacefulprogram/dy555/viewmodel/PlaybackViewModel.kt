@@ -94,6 +94,16 @@ class PlaybackViewModel(
                         )
                     )
                     videoHistoryDao.updateLatestPlayedEpisode(videoId, episode.id)
+                    episodeHistoryDao.save(
+                        EpisodeHistory(
+                            id = episode.id,
+                            videoId = videoId,
+                            name = episode.name,
+                            progress = history?.progress ?: 0L,
+                            duration = history?.duration ?: 0L,
+                            timestamp = System.currentTimeMillis()
+                        )
+                    )
                 }
             } catch (ex: Exception) {
                 if (ex is CancellationException) {
@@ -132,6 +142,26 @@ class PlaybackViewModel(
                 )
                 delay(5000L)
             }
+        }
+    }
+
+    fun saveHistory() {
+        val epRes = playbackEpisode.value
+        if (epRes !is Resource.Success) {
+            return
+        }
+        val ep = epRes.data
+        viewModelScope.launch {
+            episodeHistoryDao.save(
+                EpisodeHistory(
+                    id = ep.id,
+                    videoId = videoId,
+                    name = ep.name,
+                    progress = currentPlayPosition,
+                    duration = videoDuration,
+                    timestamp = System.currentTimeMillis()
+                )
+            )
         }
     }
 

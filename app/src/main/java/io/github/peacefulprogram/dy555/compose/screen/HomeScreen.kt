@@ -2,12 +2,15 @@ package io.github.peacefulprogram.dy555.compose.screen
 
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Arrangement.spacedBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,7 +28,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -41,7 +43,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
@@ -62,10 +63,6 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.IconButton
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
-import androidx.tv.material3.Tab
-import androidx.tv.material3.TabDefaults
-import androidx.tv.material3.TabRow
-import androidx.tv.material3.TabRowDefaults
 import androidx.tv.material3.Text
 import io.github.peacefulprogram.dy555.Constants.VideoCardHeight
 import io.github.peacefulprogram.dy555.Constants.VideoCardWidth
@@ -74,12 +71,14 @@ import io.github.peacefulprogram.dy555.activity.CategoriesActivity
 import io.github.peacefulprogram.dy555.activity.DetailActivity
 import io.github.peacefulprogram.dy555.activity.PlayHistoryActivity
 import io.github.peacefulprogram.dy555.activity.SearchActivity
+import io.github.peacefulprogram.dy555.compose.common.CustomTabRow
 import io.github.peacefulprogram.dy555.compose.common.ErrorTip
 import io.github.peacefulprogram.dy555.compose.common.Loading
 import io.github.peacefulprogram.dy555.compose.common.VideoCard
 import io.github.peacefulprogram.dy555.compose.util.FocusGroup
 import io.github.peacefulprogram.dy555.http.MediaCardData
 import io.github.peacefulprogram.dy555.http.Resource
+import io.github.peacefulprogram.dy555.http.VideosOfType
 import io.github.peacefulprogram.dy555.viewmodel.HomeViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -93,9 +92,7 @@ private val TabItems = HomeNavTabItem.values()
 fun HomeScreen(
     viewModel: HomeViewModel = koinViewModel(),
 ) {
-    var hasInitTabFocus by rememberSaveable {
-        mutableStateOf(false)
-    }
+    var hasInitTabFocus = rememberSaveable { false }
     val tabFocusRequester = remember {
         FocusRequester()
     }
@@ -135,6 +132,11 @@ fun HomeScreen(
     ) { tab ->
         AnimatedContent(
             targetState = tab,
+            contentKey = { it },
+            transitionSpec = {
+                fadeIn(animationSpec = tween(durationMillis = 200, delayMillis = 90))
+                    .togetherWith(fadeOut(animationSpec = tween(90)))
+            }
         ) { curTab ->
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 when (curTab) {
@@ -208,6 +210,9 @@ fun HomeTopNav(
     tabContent: @Composable (HomeNavTabItem) -> Unit
 ) {
     val context = LocalContext.current
+    val tabNames = remember {
+        tabItems.map { context.getString(it.tabName) }.toList()
+    }
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -237,37 +242,13 @@ fun HomeTopNav(
 
             }
 
-            FocusGroup(modifier = modifier) {
-                Row(Modifier.fillMaxWidth()) {
-                    TabRow(
-                        selectedTabIndex = selectedTabIndex,
-                        indicator = {
-                            TabRowDefaults.UnderlinedIndicator(
-                                currentTabPosition = it[selectedTabIndex],
-                                activeColor = MaterialTheme.colorScheme.border
-                            )
-                        }
-                    ) {
-                        tabItems.forEachIndexed { tabIndex, tab ->
-                            Tab(
-                                selected = selectedTabIndex == tabIndex,
-                                modifier = Modifier.restorableFocus(),
-                                onFocus = { onTabFocus(tabIndex) },
-                                colors = TabDefaults.underlinedIndicatorTabColors(
-                                    selectedContentColor = colorResource(id = R.color.rose200),
-                                    focusedSelectedContentColor = colorResource(id = R.color.rose400)
-                                )
-                            ) {
-                                Text(
-                                    text = stringResource(tab.tabName),
-                                    modifier = Modifier.padding(8.dp, 4.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-
-            }
+            CustomTabRow(
+                modifier = modifier,
+                selectedTabIndex = selectedTabIndex,
+                tabs = tabNames,
+                onTabFocus = onTabFocus
+            )
+            Spacer(modifier = Modifier.height(15.dp))
             tabContent(tabItems[selectedTabIndex])
         }
 
@@ -291,10 +272,11 @@ enum class HomeNavTabItem(@StringRes val tabName: Int) {
 }
 
 
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun VideoCategories(
     videoTypeId: String? = null,
-    dataProvider: () -> StateFlow<Resource<List<Pair<String, List<MediaCardData>>>>>,
+    dataProvider: () -> StateFlow<Resource<VideosOfType>>,
     onRequestRefresh: (autoRefresh: Boolean) -> Unit,
     onRequestTabFocus: () -> Unit,
     onVideoClick: (MediaCardData) -> Unit
@@ -305,7 +287,7 @@ fun VideoCategories(
         return
     }
     if (recommend is Resource.Error) {
-        ErrorTip(message = (recommend as Resource.Error<List<Pair<String, List<MediaCardData>>>>).message) {
+        ErrorTip(message = (recommend as Resource.Error<VideosOfType>).message) {
             onRequestRefresh(false)
         }
         return
@@ -314,66 +296,140 @@ fun VideoCategories(
     val state = rememberTvLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val onVideoKeyEvent = { _: MediaCardData, keyEvent: KeyEvent ->
+        when (keyEvent.key) {
+            Key.Back -> {
+                coroutineScope.launch {
+                    state.scrollToItem(0)
+                }
+                onRequestTabFocus()
+                true
+            }
+
+            Key.Menu -> {
+                onRequestRefresh(false)
+                onRequestTabFocus()
+                true
+            }
+
+            else -> {
+                false
+            }
+        }
+    }
     TvLazyColumn(
         content = {
-            item { Spacer(modifier = Modifier.height(20.dp)) }
-            items(count = videoGroups.size, key = { videoGroups[it].first }) { groupIndex ->
-                val typeId = if (groupIndex == 0) {
-                    videoTypeId
-                } else {
-                    null
-                }
-                val onVideoTypeClick = {
-                    if (videoTypeId != null) {
-                        CategoriesActivity.startActivity(
-                            "$videoTypeId-----------", context = context
+            // 推荐视频
+            if (videoGroups.recommendVideos.isNotEmpty()) {
+                item {
+                    Column(Modifier.fillMaxWidth()) {
+                        if (videoTypeId == null) {
+                            Text(text = stringResource(R.string.video_group_recommend))
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = "推荐")
+                                Text(text = " | ")
+                                Surface(
+                                    onClick = {
+                                        CategoriesActivity.startActivity(
+                                            "$videoTypeId-----------", context = context
+                                        )
+                                    },
+                                    scale = ClickableSurfaceScale.None,
+                                    colors = ClickableSurfaceDefaults.colors(
+                                        focusedContainerColor = MaterialTheme.colorScheme.surface
+                                    ),
+                                    border = ClickableSurfaceDefaults.border(
+                                        focusedBorder = Border(
+                                            BorderStroke(
+                                                2.dp,
+                                                MaterialTheme.colorScheme.border
+                                            )
+                                        )
+                                    ),
+                                    modifier = Modifier.onPreviewKeyEvent {
+                                        if (it.key == Key.DirectionUp) {
+                                            if (it.type == KeyEventType.KeyDown) {
+                                                onRequestTabFocus()
+                                            }
+                                            true
+                                        } else {
+                                            false
+                                        }
+                                    }
+                                ) {
+                                    Text(
+                                        text = stringResource(id = R.string.video_more),
+                                        modifier = Modifier.padding(8.dp, 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                        VideoRow(
+                            videos = videoGroups.recommendVideos,
+                            onVideoClick = onVideoClick,
+                            onVideoKeyEvent = onVideoKeyEvent
                         )
                     }
                 }
-                val group = videoGroups[groupIndex]
-                VideoRow(
-                    videoTypeId = typeId,
-                    onVideoTypeClick = onVideoTypeClick,
-                    title = group.first,
-                    videos = group.second,
-                    onRequestTabFocus = onRequestTabFocus,
-                    onVideoClick = onVideoClick
-                ) { _, keyEvent ->
-                    when (keyEvent.key) {
-                        Key.Back -> {
-                            coroutineScope.launch {
-                                state.scrollToItem(0)
+            }
+            // 排行榜
+            if (videoGroups.ranks.isNotEmpty()) {
+                item {
+                    var selectedRankIndex by remember {
+                        mutableIntStateOf(0)
+                    }
+                    val rankNames = remember(videoGroups.ranks) {
+                        videoGroups.ranks.map { it.first }
+                    }
+                    Column(Modifier.fillMaxWidth()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = stringResource(R.string.video_group_rank))
+                            Text(text = " | ")
+                            CustomTabRow(
+                                selectedTabIndex = selectedRankIndex,
+                                tabs = rankNames
+                            ) { selectedRankIndex = it }
+                        }
+                        AnimatedContent(
+                            targetState = selectedRankIndex,
+                            contentKey = { rankNames[it] },
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(220, delayMillis = 90))
+                                    .togetherWith(fadeOut(animationSpec = tween(90)))
                             }
-                            onRequestTabFocus()
-                            true
-                        }
-
-                        Key.Menu -> {
-                            onRequestRefresh(false)
-                            onRequestTabFocus()
-                            true
-                        }
-
-                        else -> {
-                            false
+                        ) { rankIndex ->
+                            VideoRow(
+                                videos = videoGroups.ranks[rankIndex].second,
+                                onVideoClick = onVideoClick,
+                                onVideoKeyEvent = onVideoKeyEvent
+                            )
                         }
                     }
                 }
             }
-            item { Spacer(modifier = Modifier.height(20.dp)) }
+            // 其他
+            items(videoGroups.videoGroups, key = { it.first }) { group ->
+                Column(Modifier.fillMaxWidth()) {
+                    Text(text = group.first)
+                    VideoRow(
+                        videos = group.second,
+                        onVideoClick = onVideoClick,
+                        onVideoKeyEvent = onVideoKeyEvent
+                    )
+                }
+
+            }
         },
-        state = state
+        state = state,
+        verticalArrangement = spacedBy(15.dp)
     )
 }
 
-@OptIn(ExperimentalTvMaterial3Api::class, ExperimentalTvFoundationApi::class)
+@OptIn(ExperimentalTvFoundationApi::class)
 @Composable
 fun VideoRow(
-    title: String,
     videos: List<MediaCardData>,
-    videoTypeId: String? = null,
-    onRequestTabFocus: () -> Unit,
-    onVideoTypeClick: (() -> Unit)? = null,
     onVideoClick: (MediaCardData) -> Unit = {},
     onVideoKeyEvent: ((MediaCardData, KeyEvent) -> Boolean)? = null
 ) {
@@ -381,39 +437,6 @@ fun VideoRow(
     val scaleWidth = VideoCardWidth * (focusedScale - 1f) / 2 + 5.dp
     val scaleHeight = VideoCardHeight * (focusedScale - 1f) / 2 + 5.dp
     Column(Modifier.fillMaxWidth()) {
-        if (videoTypeId == null) {
-            Text(text = title)
-        } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = title)
-                Text(text = " | ")
-                Surface(
-                    onClick = { onVideoTypeClick?.invoke() },
-                    scale = ClickableSurfaceScale.None,
-                    colors = ClickableSurfaceDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    border = ClickableSurfaceDefaults.border(
-                        focusedBorder = Border(BorderStroke(2.dp, MaterialTheme.colorScheme.border))
-                    ),
-                    modifier = Modifier.onPreviewKeyEvent {
-                        if (it.key == Key.DirectionUp) {
-                            if (it.type == KeyEventType.KeyDown) {
-                                onRequestTabFocus()
-                            }
-                            true
-                        } else {
-                            false
-                        }
-                    }
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.video_more),
-                        modifier = Modifier.padding(8.dp, 4.dp)
-                    )
-                }
-            }
-        }
         Spacer(modifier = Modifier.height(scaleHeight))
         FocusGroup {
             TvLazyRow(content = {
@@ -466,7 +489,6 @@ fun NetflixVideos(
     TvLazyVerticalGrid(
         columns = TvGridCells.Adaptive(videoCardContainerWidth),
         state = gridState,
-        contentPadding = PaddingValues(20.dp),
         content = {
             items(count = pagingItems.itemCount) {
                 Box(

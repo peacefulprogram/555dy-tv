@@ -30,4 +30,6 @@
     <string name="playback_history">播放历史</string>
     <string name="activity_play_history">播放历史页</string>
     <string name="click_ok_del_tip">长按【ok】可删除</string>
+    <string name="video_group_recommend">推荐</string>
+    <string name="video_group_rank">排行榜</string>
 </resources>

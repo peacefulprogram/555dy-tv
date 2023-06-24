@@ -6,8 +6,8 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import io.github.peacefulprogram.dy555.http.BasicPagingSource
 import io.github.peacefulprogram.dy555.http.HttpDataRepository
-import io.github.peacefulprogram.dy555.http.MediaCardData
 import io.github.peacefulprogram.dy555.http.Resource
+import io.github.peacefulprogram.dy555.http.VideosOfType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,44 +16,43 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 
 class HomeViewModel(private val repository: HttpDataRepository) : ViewModel() {
-    private val TAG = HomeViewModel::class.java.simpleName
 
     private val refreshTimeMap: MutableMap<String, Long> = ConcurrentHashMap()
 
     // 首页推荐
-    private val _recommend: MutableStateFlow<Resource<List<Pair<String, List<MediaCardData>>>>> =
+    private val _recommend: MutableStateFlow<Resource<VideosOfType>> =
         MutableStateFlow(Resource.Loading)
 
-    val recommend: StateFlow<Resource<List<Pair<String, List<MediaCardData>>>>>
+    val recommend: StateFlow<Resource<VideosOfType>>
         get() = _recommend
 
 
     // 电影
-    private val _movies: MutableStateFlow<Resource<List<Pair<String, List<MediaCardData>>>>> =
+    private val _movies: MutableStateFlow<Resource<VideosOfType>> =
         MutableStateFlow(Resource.Loading)
 
-    val movies: StateFlow<Resource<List<Pair<String, List<MediaCardData>>>>>
+    val movies: StateFlow<Resource<VideosOfType>>
         get() = _movies
 
     // 连续剧
-    private val _serialDrama: MutableStateFlow<Resource<List<Pair<String, List<MediaCardData>>>>> =
+    private val _serialDrama: MutableStateFlow<Resource<VideosOfType>> =
         MutableStateFlow(Resource.Loading)
 
-    val serialDrama: StateFlow<Resource<List<Pair<String, List<MediaCardData>>>>>
+    val serialDrama: StateFlow<Resource<VideosOfType>>
         get() = _serialDrama
 
     // 动漫
-    private val _anime: MutableStateFlow<Resource<List<Pair<String, List<MediaCardData>>>>> =
+    private val _anime: MutableStateFlow<Resource<VideosOfType>> =
         MutableStateFlow(Resource.Loading)
 
-    val anime: StateFlow<Resource<List<Pair<String, List<MediaCardData>>>>>
+    val anime: StateFlow<Resource<VideosOfType>>
         get() = _anime
 
     // 综艺
-    private val _varietyShow: MutableStateFlow<Resource<List<Pair<String, List<MediaCardData>>>>> =
+    private val _varietyShow: MutableStateFlow<Resource<VideosOfType>> =
         MutableStateFlow(Resource.Loading)
 
-    val varietyShow: StateFlow<Resource<List<Pair<String, List<MediaCardData>>>>>
+    val varietyShow: StateFlow<Resource<VideosOfType>>
         get() = _varietyShow
 
     val netflixPager = Pager(

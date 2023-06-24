@@ -1,5 +1,6 @@
 package io.github.peacefulprogram.dy555.compose.screen
 
+import android.util.Log
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -120,7 +121,12 @@ fun SearchResultScreen(viewModel: SearchResultViewModel) {
         }
     }
 
+
     LaunchedEffect(Unit) {
-        titleFocusRequester.requestFocus()
+        try {
+            titleFocusRequester.requestFocus()
+        } catch (e: Exception) {
+            Log.w("SearchResultScreen", "request focus error: ${e.message}", e)
+        }
     }
 }

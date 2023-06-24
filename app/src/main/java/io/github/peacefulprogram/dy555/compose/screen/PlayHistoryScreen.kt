@@ -1,5 +1,6 @@
 package io.github.peacefulprogram.dy555.compose.screen
 
+import android.util.Log
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -44,6 +45,7 @@ import io.github.peacefulprogram.dy555.http.MediaCardData
 import io.github.peacefulprogram.dy555.room.VideoEpisodeHistory
 import io.github.peacefulprogram.dy555.viewmodel.PlayHistoryViewModel
 import kotlinx.coroutines.launch
+
 
 @Composable
 fun PlayHistoryScreen(viewModel: PlayHistoryViewModel) {
@@ -142,7 +144,11 @@ fun PlayHistoryScreen(viewModel: PlayHistoryViewModel) {
     }
 
     LaunchedEffect(Unit) {
-        titleFocusRequester.requestFocus()
+        try {
+            titleFocusRequester.requestFocus()
+        } catch (e: Exception) {
+            Log.w("PlayHistoryScreen", "request focus error: ${e.message}", e)
+        }
     }
 
     val removeVideo = confirmRemoveVideo ?: return

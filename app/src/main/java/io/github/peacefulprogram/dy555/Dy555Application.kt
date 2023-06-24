@@ -22,6 +22,7 @@ import io.github.peacefulprogram.dy555.viewmodel.VideoDetailViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.Cookie
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -190,7 +191,9 @@ class Dy555Application : Application(), ImageLoaderFactory {
                 repository.loadVideoServerUrl()
             } catch (ex: Exception) {
                 Log.e(TAG, "reloadVideoServer: ${ex.message}", ex)
-                context.showLongToast("加载视频服务器失败,将使用默认地址:${ex.message}")
+                withContext(Dispatchers.Main) {
+                    context.showLongToast("加载视频服务器失败,将使用默认地址:${ex.message}")
+                }
                 defaultVideoServer
             }
 

@@ -1,6 +1,7 @@
 package io.github.peacefulprogram.dy555.fragment
 
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
@@ -20,11 +21,11 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.leanback.LeanbackPlayerAdapter
-import com.jing.ddys.ext.showLongToast
-import com.jing.ddys.ext.showShortToast
 import io.github.peacefulprogram.dy555.Constants
 import io.github.peacefulprogram.dy555.ext.dpToPx
 import io.github.peacefulprogram.dy555.ext.secondsToDuration
+import io.github.peacefulprogram.dy555.ext.showLongToast
+import io.github.peacefulprogram.dy555.ext.showShortToast
 import io.github.peacefulprogram.dy555.fragment.playback.ChooseEpisodeDialog
 import io.github.peacefulprogram.dy555.fragment.playback.GlueActionCallback
 import io.github.peacefulprogram.dy555.fragment.playback.PlayListAction
@@ -94,15 +95,34 @@ class VideoPlaybackFragment(
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (Build.VERSION.SDK_INT <= 23) {
+            buildPlayer()
+        }
+    }
+
     override fun onStart() {
         super.onStart()
-        buildPlayer()
+        if (Build.VERSION.SDK_INT > 23) {
+            buildPlayer()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (Build.VERSION.SDK_INT <= 23) {
+            resumeFrom = exoplayer!!.currentPosition
+            destroyPlayer()
+        }
     }
 
     override fun onStop() {
         super.onStop()
-        resumeFrom = exoplayer!!.currentPosition
-        destroyPlayer()
+        if (Build.VERSION.SDK_INT > 23) {
+            resumeFrom = exoplayer!!.currentPosition
+            destroyPlayer();
+        }
     }
 
     @OptIn(UnstableApi::class)

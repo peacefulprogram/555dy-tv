@@ -9,7 +9,7 @@ import androidx.room.RoomDatabase
 import cn.hutool.crypto.digest.MD5
 import coil.ImageLoader
 import coil.ImageLoaderFactory
-import com.jing.ddys.ext.showLongToast
+import io.github.peacefulprogram.dy555.ext.showLongToast
 import io.github.peacefulprogram.dy555.http.HttpDataRepository
 import io.github.peacefulprogram.dy555.room.Dy555Database
 import io.github.peacefulprogram.dy555.viewmodel.CategoriesViewModel

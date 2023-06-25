@@ -10,9 +10,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ExperimentalTvMaterial3Api
-import com.jing.ddys.ext.showShortToast
 import io.github.peacefulprogram.dy555.compose.screen.HomeScreen
 import io.github.peacefulprogram.dy555.compose.theme.Dy555Theme
+import io.github.peacefulprogram.dy555.ext.showShortToast
 
 /**
  * Loads [MainFragment].

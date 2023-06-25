@@ -18,10 +18,10 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.Adapter
 import androidx.recyclerview.widget.RecyclerView.ItemDecoration
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
-import com.jing.ddys.ext.getColorWithAlpha
 import io.github.peacefulprogram.dy555.R
 import io.github.peacefulprogram.dy555.databinding.ChooseItemIndicatorLayoutBinding
 import io.github.peacefulprogram.dy555.ext.dpToPx
+import io.github.peacefulprogram.dy555.ext.getColorWithAlpha
 
 class ChooseEpisodeDialog<T>(
     private val dataList: List<T>,

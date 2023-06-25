@@ -11,8 +11,8 @@ android {
         applicationId = "io.github.peacefulprogram.dy555"
         minSdk = 21
         targetSdk = 33
-        versionCode = 5
-        versionName = "1.4"
+        versionCode = 6
+        versionName = "1.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true

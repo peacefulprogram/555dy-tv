@@ -5,6 +5,9 @@ import cn.hutool.crypto.digest.HmacAlgorithm
 import cn.hutool.crypto.digest.MD5
 import com.google.gson.Gson
 import io.github.peacefulprogram.dy555.Constants
+import io.github.peacefulprogram.dy555.Dy555Application
+import okhttp3.Cookie
+import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.internal.and
@@ -21,17 +24,70 @@ import kotlin.math.min
 class HttpDataRepository(private val okHttpClient: OkHttpClient) {
 
     private fun getDocument(url: String): Document {
-        val html = Request.Builder()
+        val resp = Request.Builder()
             .url(url)
             .get()
             .build()
             .let {
                 okHttpClient.newCall(it).execute()
             }
+        val cookie = Cookie.parseAll(resp.request.url, resp.headers).find {
+            it.name == "ge_ua_p"
+        }?.value
+        val html = resp
             .body!!
             .string()
+        if (cookie == null) {
+            return Jsoup.parse(html)
+        }
+        val geUaKey = requestGeUaKey(cookie, html)
+        Dy555Application.ge_ua_key = geUaKey
+        return getDocument(url)
+    }
 
-        return Jsoup.parse(html)
+    private fun requestGeUaKey(geUaP: String, html: String): String {
+        val idx = html.indexOf(" nonce")
+        var numStart = -1
+        var nonceStr = ""
+        for (i in (idx + 7) until html.length) {
+            val isDigit = html[i].isDigit()
+            if (numStart == -1 && isDigit) {
+                numStart = i
+                continue
+            }
+            if (numStart != -1 && !isDigit) {
+                nonceStr = html.substring(startIndex = numStart, i)
+                break
+            }
+        }
+        if (nonceStr.isEmpty()) {
+            throw RuntimeException("未找到nonce")
+        }
+        val nonce = nonceStr.toLong()
+        var sum = 0L
+        geUaP.forEachIndexed { charIndex, ch ->
+            if (ch in '0'..'9' || ch in 'a'..'z' || ch in 'A'..'Z') {
+                sum += ch.code * (nonce + charIndex)
+            }
+        }
+        val body = FormBody.Builder()
+            .add("nonce", nonceStr)
+            .add("sum", sum.toString())
+            .build()
+        val resp = Request.Builder()
+            .url(Constants.BASE_URL)
+            .post(body)
+            .addHeader("cookie", "ge_ua_p=$geUaP")
+            .addHeader("X-Ge-Ua-Step", "prev")
+            .build()
+            .let {
+                okHttpClient.newCall(it).execute()
+            }
+        return Cookie.parseAll(resp.request.url, resp.headers)
+            .find { it.name == "ge_ua_key" }
+            ?.value
+            ?: throw RuntimeException("未获取到ge_ua_key")
+
     }
 
     private fun getIdFromUrl(url: String): String =

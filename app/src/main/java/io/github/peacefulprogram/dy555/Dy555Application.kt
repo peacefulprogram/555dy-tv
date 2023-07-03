@@ -98,6 +98,8 @@ class Dy555Application : Application(), ImageLoaderFactory {
         lateinit var context: Context
             private set
 
+        var ge_ua_key: String = ""
+
         val trustManager by lazy {
             object : X509TrustManager {
                 override fun checkClientTrusted(p0: Array<out X509Certificate>?, p1: String?) {
@@ -123,11 +125,26 @@ class Dy555Application : Application(), ImageLoaderFactory {
             OkHttpClient.Builder()
                 .hostnameVerifier { _, _ -> true }
                 .addInterceptor { chain ->
-                    val req = chain.request()
+                    val originalReq = chain.request()
+                    val req = originalReq
                         .newBuilder()
-                        .header("cookie", "searchneed=ok")
-                        .header("user-agent", Constants.USER_AGENT)
-                        .header("referer", Constants.BASE_URL)
+                        .apply {
+                            val ck = originalReq.header("cookie")
+                            val headers = mutableListOf("searchneed=ok")
+                            if (ck?.isNotEmpty() == true) {
+                                headers.add(ck)
+                            }
+                            if (ge_ua_key.isNotEmpty()) {
+                                headers.add("ge_ua_key=$ge_ua_key")
+                            }
+                            header("cookie", headers.joinToString(separator = ";"))
+                            if (originalReq.header("user-agent")?.isNotEmpty() != true) {
+                                header("user-agent", Constants.USER_AGENT)
+                            }
+                            if (originalReq.header("referer")?.isNotEmpty() != true) {
+                                header("referer", Constants.BASE_URL + '/')
+                            }
+                        }
                         .build()
                     val resp = chain.proceed(req)
                     val guardCookie = Cookie.parseAll(resp.request.url, resp.headers)
@@ -149,9 +166,7 @@ class Dy555Application : Application(), ImageLoaderFactory {
                             .header(
                                 "cookie",
                                 "guard=$guardCookie; guardrect=$cookieValue; searchneed=ok"
-                            )
-                            .build()
-                            .let { chain.proceed(it) }
+                            ).build().let { chain.proceed(it) }
                     } else {
                         resp
                     }
